@@ -10,9 +10,9 @@
 #include "typedefs.h"
 #include "common.h"
 
-#define memsize 30000
+#define MEMSIZE 30000
 
-u8 mem[memsize] = {};
+u8 mem[MEMSIZE] = {};
 s32 cell = 0;
 u32 inst = 0;
 char curinst = 0xFF;
@@ -184,7 +184,7 @@ int main(int argc, char* argv[]) {
     }
     if (debug) {
         putchar('\n');
-        for (s32 i = 0; i < memsize; i++) {
+        for (s32 i = 0; i < MEMSIZE; i++) {
             printf("%02X ", mem[i]);
         }
     }
