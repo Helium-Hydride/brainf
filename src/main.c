@@ -17,6 +17,7 @@ s32 cell = 0;
 u32 inst = 0;
 char curinst = 0xFF;
 char* input = NULL;
+char* prog = NULL;
 
 
 s32 debug = 0;
@@ -38,20 +39,20 @@ s32 jmpbal(char chr) {
 }
 
 
-void jumpf(u32 *ins, char* prg) {
+void jumpf(void) {
     s32 bal = -1;
     while (bal != 0) {
-        (*ins)++;
-        bal += jmpbal(prg[*ins]);
+        inst++;
+        bal += jmpbal(prog[inst]);
     }
 }
 
 
-void jumpb(u32 *ins, char* prg) {
+void jumpb(void) {
     s32 bal = 1;
     while (bal != 0) {
-        (*ins)--;
-        bal += jmpbal(prg[*ins]);
+        inst--;
+        bal += jmpbal(prog[inst]);
     }
 }
 
@@ -109,7 +110,7 @@ int main(int argc, char* argv[]) {
     s64 proglen = ftell(progf);
     rewind(progf);
 
-    char* prog = malloc(proglen + 1);
+    prog = malloc(proglen + 1);
     fread(prog, proglen, 1, progf);
     fclose(progf);
 
@@ -144,13 +145,13 @@ int main(int argc, char* argv[]) {
 
             case '[':
                 if (mem[cell] == 0) {
-                    jumpf(&inst, prog);
+                    jumpf();
                 }
                 break;
 
             case ']':
                 if (mem[cell] != 0) {
-                    jumpb(&inst, prog);
+                    jumpb();
                 }
                 break;
 
