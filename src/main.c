@@ -8,7 +8,14 @@
 
 
 #include "typedefs.h"
-#include "common.h"
+
+
+
+#define GETOPT(opts) \
+s32 _opt; \
+while ((_opt = getopt(argc, argv, (opts))) != -1) switch (_opt)
+
+
 
 #define MEMSIZE 30000
 
@@ -85,29 +92,26 @@ char* readf(char* filename) {
 
 
 int main(int argc, char* argv[]) {
-    s32 opt;
-    while ((opt = getopt(argc, argv, "dm:i:n")) != -1) {
-        switch (opt) {
-            case 'd': // Debug
-                debug = 1;
-                break;
-            case 'm': // Maximum instructions
-                maxinst = atol(optarg);
-                break;
-            case 'i': // Input in args instead of stdin
-                input = optarg;
-                break;
-            case 'n': // Show number of instructions
-                showinst = 1;
-                break;
-            case '?':
-                if (optopt == 'm') {
-                    maxinst = 0;
-                } else if (optopt == 'i') {
-                    input = "";
-                }
-                break;
-        }
+    GETOPT("dm:i:n") {
+        case 'd': // Debug
+            debug = 1;
+            break;
+        case 'm': // Maximum instructions
+            maxinst = atol(optarg);
+            break;
+        case 'i': // Input in args instead of stdin
+            input = optarg;
+            break;
+        case 'n': // Show number of instructions
+            showinst = 1;
+            break;
+        case '?':
+            if (optopt == 'm') {
+                maxinst = 0;
+            } else if (optopt == 'i') {
+                input = "";
+            }
+            break;
     }
 
     if (argc < 2 || optind == argc) {
