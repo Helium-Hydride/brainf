@@ -63,6 +63,24 @@ void keyinthandler(s32 sig) {
 }
 
 
+// Read file and null terminate.
+char* readf(char* filename) {
+    FILE* fil = fopen(filename, "r+");
+
+    fseek(fil, 0, SEEK_END);
+    s64 flen = ftell(fil);
+    rewind(fil);
+
+    char* filestr = malloc(flen + 1);
+    fread(filestr, flen, 1, fil);
+    fclose(fil);
+
+    filestr[flen] = '\0';
+
+    return filestr;
+}
+
+
 
 
 
@@ -104,17 +122,7 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
 
-    FILE* progf = fopen(progname, "r+");
-
-    fseek(progf, 0, SEEK_END);
-    s64 proglen = ftell(progf);
-    rewind(progf);
-
-    prog = malloc(proglen + 1);
-    fread(prog, proglen, 1, progf);
-    fclose(progf);
-
-    prog[proglen] = '\0';
+    prog = readf(progname);
 
     
 
