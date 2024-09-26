@@ -23,7 +23,6 @@ while ((_opt = getopt(argc, argv, (opts))) != -1) switch (_opt)
 u8 mem[MEMSIZE] = {};
 s32 cell = 0;
 u32 inst = 0;
-char curinst = 0xFF;
 char* input = NULL;
 char* prog = NULL;
 
@@ -47,21 +46,23 @@ s32 jmpbal(char chr) {
 }
 
 
-void jumpf(void) {
+s32 jumpf(s32 ins, char* prg) {
     s32 bal = -1;
     while (bal != 0) {
-        inst++;
-        bal += jmpbal(prog[inst]);
+        ins++;
+        bal += jmpbal(prg[ins]);
     }
+    return ins;
 }
 
 
-void jumpb(void) {
+s32 jumpb(s32 ins, char* prg) {
     s32 bal = 1;
     while (bal != 0) {
-        inst--;
-        bal += jmpbal(prog[inst]);
+        ins--;
+        bal += jmpbal(prg[ins]);
     }
+    return ins;
 }
 
 
@@ -133,6 +134,23 @@ fopenerr:
 }
 
 
+s32* genjumptable(char* prg, s64 proglen) {
+    s32 *jumptable = malloc(proglen * sizeof(s32));
+
+    for (s32 ins = 0; ins < proglen; ins++) {
+        switch (prg[ins]) {
+            case '[':
+                jumptable[ins] = jumpf(ins, prg);
+                break;
+            case ']':
+                jumptable[ins] = jumpb(ins, prg);
+                break;
+        }
+    }
+    return jumptable;
+}
+
+
 
 
 
@@ -180,16 +198,18 @@ int main(int argc, char* argv[]) {
         goto err;
     }
 
+    s64 proglen = strlen(prog);
+
+    s32* jumptable = genjumptable(prog, proglen); // Generate the jump table
+
 
     setvbuf(stdout, NULL, _IONBF, 0); // Disable buffering for realtime output
 
     signal(SIGINT, keyinthandler); // Catch CTRL+C
 
 
-    for (inst = 0; curinst != '\0'; inst++) {
-        curinst = prog[inst];
-        //printf("%c", curinst);
-        switch (curinst) {
+    for (inst = 0; inst < proglen; inst++) {
+        switch (prog[inst]) {
             case '+':
                 mem[cell]++;
                 break;
@@ -208,12 +228,12 @@ int main(int argc, char* argv[]) {
 
             case '[':
                 if (mem[cell] == 0)
-                    jumpf();
+                    inst = jumptable[inst];
                 break;
 
             case ']':
                 if (mem[cell] != 0)
-                    jumpb();
+                    inst = jumptable[inst];
                 break;
 
             case '.':
