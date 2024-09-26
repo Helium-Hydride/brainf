@@ -35,7 +35,7 @@ s64 numinst = 0; // Number of instructions interpreted
 s64 maxinst = INT64_MAX;
 volatile s32 breaked = 0;
 
-char errstr[100] = {};
+char* errstr;
 
 
 
@@ -106,7 +106,7 @@ char* readf(char* filename) {
     FILE* fil = fopen(filename, "r+");
 
     if (fil == NULL) {
-        strcpy(errstr, "Error opening file");
+        errstr = "Error opening file";
         goto fopenerr;
     }
 
@@ -119,9 +119,9 @@ char* readf(char* filename) {
 
     if (numread != 1) {
         if (feof(fil)) {
-            strcpy(errstr, "Error reading file: unexpected end");
+            errstr = "Error reading file: unexpected end";
         } else {
-            strcpy(errstr, "Error reading file");
+            errstr = "Error reading file";
         }
         goto err;
     }
@@ -169,14 +169,14 @@ int main(int argc, char* argv[]) {
     }
 
     if (argc < 2 || optind == argc) {
-        strcpy(errstr, "Error: no program given");
+        errstr = "Error: no program given";
         goto err;
     }
 
     char* progname = argv[optind];
 
     if (access(progname, F_OK) != 0) {
-        strcpy(errstr, "Error: program not found");
+        errstr = "Error: program not found";
         goto err;
     }
 
