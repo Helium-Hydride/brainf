@@ -115,13 +115,13 @@ char* readf(char* filename) {
     rewind(fil);
 
     char* filestr = malloc(flen + 1);
-    u64 bytesread = fread(filestr, flen, 1, fil);
+    u64 numread = fread(filestr, flen, 1, fil);
 
-    if (bytesread != flen) {
-        if (ferror(fil)) {
-            strcpy(errstr, "Error reading file");
-        } else if (feof(fil)) {
+    if (numread != 1) {
+        if (feof(fil)) {
             strcpy(errstr, "Error reading file: unexpected end");
+        } else {
+            strcpy(errstr, "Error reading file");
         }
         goto err;
     }
