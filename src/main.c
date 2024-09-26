@@ -27,13 +27,13 @@ char* input = NULL;
 char* prog = NULL;
 
 
+s32 eofbhv = 0; // Behavior of input after EOF
 s32 debug = 0;
 s32 showinst = 0;
 s64 numinst = 0; // Number of instructions interpreted
 s64 maxinst = INT64_MAX;
 volatile s32 breaked = 0;
 
-s32 tmp;
 
 
 // [ = -1, ] = 1
@@ -64,6 +64,34 @@ void jumpb(void) {
 }
 
 
+u8 readinp(u8 cell) {
+    s32 c;
+    if (input != NULL) {
+        if (*input != '\0') {
+            return *(input++); // Advance input
+        } else {
+            goto eof;
+        }
+    } else {
+        c = getchar();
+        if (c != EOF) {
+            return c;
+        } else {
+            goto eof;
+        }
+    }
+eof:
+    switch (eofbhv) {
+        default:
+        case 0: // Leave value unchanged
+            return cell;
+        case 1: // Set to 0
+            return 0;
+        case 2: // Set to -1
+            return -1;
+    }
+}
+
 
 void keyinthandler(s32 sig) {
     breaked = 1;
@@ -92,7 +120,7 @@ char* readf(char* filename) {
 
 
 int main(int argc, char* argv[]) {
-    GETOPT("dm:i:n") {
+    GETOPT("dm:i:ne:") {
         case 'd': // Debug
             debug = 1;
             break;
@@ -104,6 +132,9 @@ int main(int argc, char* argv[]) {
             break;
         case 'n': // Show number of instructions
             showinst = 1;
+            break;
+        case 'e': // Behavior of input after EOF
+            eofbhv = atoi(optarg);
             break;
         case '?':
             if (optopt == 'm') {
@@ -173,7 +204,7 @@ int main(int argc, char* argv[]) {
                 break;
 
             case ',':
-                //...
+                mem[cell] = readinp(mem[cell]);
                 break;
 
             default:
