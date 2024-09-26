@@ -41,11 +41,9 @@ char* errstr;
 
 // [ = -1, ] = 1
 s32 jmpbal(char chr) { 
-    if (chr == '[' || chr == ']') {
+    if (chr == '[' || chr == ']')
         return chr - 92; // [\]
-    } else {
-        return 0;
-    }
+    return 0;
 }
 
 
@@ -70,18 +68,14 @@ void jumpb(void) {
 u8 readinp(u8 cell) {
     s32 c;
     if (input != NULL) {
-        if (*input != '\0') {
+        if (*input != '\0') 
             return *(input++); // Advance input
-        } else {
-            goto eof;
-        }
+        goto eof;
     } else {
         c = getchar();
-        if (c != EOF) {
+        if (c != EOF) 
             return c;
-        } else {
-            goto eof;
-        }
+        goto eof;
     }
 eof:
     switch (eofbhv) {
@@ -213,15 +207,13 @@ int main(int argc, char* argv[]) {
                 break;
 
             case '[':
-                if (mem[cell] == 0) {
+                if (mem[cell] == 0)
                     jumpf();
-                }
                 break;
 
             case ']':
-                if (mem[cell] != 0) {
+                if (mem[cell] != 0)
                     jumpb();
-                }
                 break;
 
             case '.':
@@ -240,18 +232,15 @@ int main(int argc, char* argv[]) {
         numinst++;
 
 
-        if (breaked) {
+        if (breaked)
             break;
-        }
-
-        if (numinst >= maxinst) {
+        if (numinst >= maxinst)
             break;
-        }
     }
 
-    if (showinst) {
+    if (showinst)
         printf("\nNumber of instructions: %ld", numinst);
-    }
+
     if (debug) {
         putchar('\n');
         for (s32 i = 0; i < MEMSIZE; i++) {
