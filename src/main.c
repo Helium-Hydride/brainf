@@ -5,6 +5,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <signal.h>
+#include <errno.h>
 
 
 #include "typedefs.h"
@@ -33,6 +34,8 @@ s32 showinst = 0;
 s64 numinst = 0; // Number of instructions interpreted
 s64 maxinst = INT64_MAX;
 volatile s32 breaked = 0;
+
+char errstr[100] = {};
 
 
 
@@ -102,17 +105,37 @@ void keyinthandler(s32 sig) {
 char* readf(char* filename) {
     FILE* fil = fopen(filename, "r+");
 
+    if (fil == NULL) {
+        strcpy(errstr, "Error opening file");
+        goto fopenerr;
+    }
+
     fseek(fil, 0, SEEK_END);
     s64 flen = ftell(fil);
     rewind(fil);
 
     char* filestr = malloc(flen + 1);
-    fread(filestr, flen, 1, fil);
+    u64 bytesread = fread(filestr, flen, 1, fil);
+
+    if (bytesread != flen) {
+        if (ferror(fil)) {
+            strcpy(errstr, "Error reading file");
+        } else if (feof(fil)) {
+            strcpy(errstr, "Error reading file: unexpected end");
+        }
+        goto err;
+    }
+
     fclose(fil);
 
     filestr[flen] = '\0';
 
     return filestr;
+err:
+    free(filestr);
+fopenerr:
+    fclose(fil);
+    return NULL;
 }
 
 
@@ -146,20 +169,23 @@ int main(int argc, char* argv[]) {
     }
 
     if (argc < 2 || optind == argc) {
-        fputs("Error: no program given\n", stderr);
-        exit(1);
+        strcpy(errstr, "Error: no program given");
+        goto err;
     }
 
     char* progname = argv[optind];
 
     if (access(progname, F_OK) != 0) {
-        fputs("Error: program not found\n", stderr);
-        exit(1);
+        strcpy(errstr, "Error: program not found");
+        goto err;
     }
 
     prog = readf(progname);
 
-    
+    if (prog == NULL) {
+        goto err;
+    }
+
 
     setvbuf(stdout, NULL, _IONBF, 0); // Disable buffering for realtime output
 
@@ -233,6 +259,8 @@ int main(int argc, char* argv[]) {
         }
     }
     putchar('\n');
-
-
+    exit(0);
+err:
+    fputs(errstr, stderr); fputc('\n', stderr);
+    exit(1);
 }
