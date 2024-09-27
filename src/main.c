@@ -97,7 +97,7 @@ void keyinthandler(s32 sig) {
 
 
 // Read file and null terminate.
-char* readf(char* filename) {
+char* readf(char* filename, s64 *len) {
     FILE* fil = fopen(filename, "r+");
 
     if (fil == NULL) {
@@ -107,6 +107,8 @@ char* readf(char* filename) {
 
     fseek(fil, 0, SEEK_END);
     s64 flen = ftell(fil);
+    if (len != NULL)
+        *len = flen;
     rewind(fil);
 
     char* filestr = malloc(flen + 1);
@@ -192,13 +194,11 @@ int main(int argc, char* argv[]) {
         goto err;
     }
 
-    prog = readf(progname);
+    prog = readf(progname, &proglen);
 
     if (prog == NULL) {
         goto err;
     }
-
-    proglen = strlen(prog);
 
 
     s32* jumptable = genjumptable(prog, proglen); // Generate the jump table
