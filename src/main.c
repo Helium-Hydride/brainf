@@ -25,6 +25,7 @@ s32 cell = 0;
 u32 inst = 0;
 char* input = NULL;
 char* prog = NULL;
+s64 proglen;
 
 
 s32 eofbhv = 0; // Behavior of input after EOF
@@ -32,7 +33,6 @@ s32 debug = 0;
 s32 showinst = 0;
 s64 numinst = 0; // Number of instructions interpreted
 s64 maxinst = INT64_MAX;
-volatile s32 breaked = 0;
 
 char* errstr;
 
@@ -92,7 +92,7 @@ eof:
 
 
 void keyinthandler(s32 sig) {
-    breaked = 1;
+    proglen = 0; // Make for loop exit early without extra condition
 }
 
 
@@ -198,7 +198,8 @@ int main(int argc, char* argv[]) {
         goto err;
     }
 
-    s64 proglen = strlen(prog);
+    proglen = strlen(prog);
+
 
     s32* jumptable = genjumptable(prog, proglen); // Generate the jump table
 
@@ -251,9 +252,6 @@ int main(int argc, char* argv[]) {
         }
         numinst++;
 
-
-        if (breaked)
-            break;
         if (numinst >= maxinst)
             break;
     }
