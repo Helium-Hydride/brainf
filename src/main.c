@@ -32,7 +32,6 @@ s32 eofbhv = 0; // Behavior of input after EOF
 s32 debug = 0;
 s32 showinst = 0;
 s64 numinst = 0; // Number of instructions interpreted
-s64 maxinst = INT64_MAX;
 
 char* errstr;
 
@@ -157,12 +156,9 @@ s32* genbracetable(char* prg, s64 proglen) {
 
 
 int main(int argc, char* argv[]) {
-    GETOPT("dm:i:ne:") {
+    GETOPT("di:ne:") {
         case 'd': // Debug
             debug = 1;
-            break;
-        case 'm': // Maximum instructions
-            maxinst = atol(optarg);
             break;
         case 'i': // Input in args instead of stdin
             input = optarg;
@@ -174,9 +170,7 @@ int main(int argc, char* argv[]) {
             eofbhv = atoi(optarg);
             break;
         case '?':
-            if (optopt == 'm') {
-                maxinst = 0;
-            } else if (optopt == 'i') {
+            if (optopt == 'i') {
                 input = "";
             }
             break;
@@ -251,10 +245,8 @@ int main(int argc, char* argv[]) {
                 break;
         }
         numinst++;
-
-        if (numinst >= maxinst)
-            break;
     }
+
 
     if (showinst)
         printf("\nNumber of instructions: %ld", numinst);
