@@ -136,20 +136,20 @@ fopenerr:
 }
 
 
-s32* genjumptable(char* prg, s64 proglen) {
-    s32 *jumptable = malloc(proglen * sizeof(s32));
+s32* genbracetable(char* prg, s64 proglen) {
+    s32 *bracetable = malloc(proglen * sizeof(s32));
 
     for (s32 ins = 0; ins < proglen; ins++) {
         switch (prg[ins]) {
             case '[':
-                jumptable[ins] = jumpf(ins, prg);
+                bracetable[ins] = jumpf(ins, prg);
                 break;
             case ']':
-                jumptable[ins] = jumpb(ins, prg);
+                bracetable[ins] = jumpb(ins, prg);
                 break;
         }
     }
-    return jumptable;
+    return bracetable;
 }
 
 
@@ -201,7 +201,7 @@ int main(int argc, char* argv[]) {
     }
 
 
-    s32* jumptable = genjumptable(prog, proglen); // Generate the jump table
+    s32* bracetable = genbracetable(prog, proglen); // Generate the jump table for loops
 
 
     setvbuf(stdout, NULL, _IONBF, 0); // Disable buffering for realtime output
@@ -229,12 +229,12 @@ int main(int argc, char* argv[]) {
 
             case '[':
                 if (mem[cell] == 0)
-                    inst = jumptable[inst];
+                    inst = bracetable[inst];
                 break;
 
             case ']':
                 if (mem[cell] != 0)
-                    inst = jumptable[inst];
+                    inst = bracetable[inst];
                 break;
 
             case '.':
