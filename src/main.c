@@ -233,7 +233,6 @@ int main(int argc, char* argv[]) {
 
             case '.':
                 putchar(mem[cell]);
-                //usleep(1000 * 1);
                 break;
 
             case ',':
