@@ -205,43 +205,43 @@ int main(int argc, char* argv[]) {
 
     for (inst = 0; inst < proglen; inst++) {
         switch (prog[inst]) {
-            case '+':
-                mem[cell]++;
-                break;
+        case '+':
+            mem[cell]++;
+            break;
 
-            case '-':
-                mem[cell]--;
-                break;
+        case '-':
+            mem[cell]--;
+            break;
 
-            case '>':
-                cell++;
-                break;
+        case '>':
+            cell++;
+            break;
 
-            case '<':
-                cell--;
-                break;
+        case '<':
+            cell--;
+            break;
 
-            case '[':
-                if (mem[cell] == 0)
-                    inst = bracetable[inst];
-                break;
+        case '[':
+            if (mem[cell] == 0)
+                inst = bracetable[inst];
+            break;
 
-            case ']':
-                if (mem[cell] != 0)
-                    inst = bracetable[inst];
-                break;
+        case ']':
+            if (mem[cell] != 0)
+                inst = bracetable[inst];
+            break;
 
-            case '.':
-                putchar(mem[cell]);
-                break;
+        case '.':
+            putchar(mem[cell]);
+            break;
 
-            case ',':
-                mem[cell] = readinp(mem[cell]);
-                break;
+        case ',':
+            mem[cell] = readinp(mem[cell]);
+            break;
 
-            default:
-                numinst--; // Discount non-BF instructions
-                break;
+        default:
+            numinst--; // Discount non-BF instructions
+            break;
         }
         numinst++;
     }
