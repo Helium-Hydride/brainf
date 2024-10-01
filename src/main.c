@@ -195,6 +195,8 @@ s32* genjumptable(char* prg, s64 proglen) {
 
 
 int main(int argc, char* argv[]) {
+    setvbuf(stdout, NULL, _IONBF, 0); // Disable buffering for realtime output
+    signal(SIGINT, keyinthandler); // Catch CTRL+C
     GETOPT("di:ne:") {
         case 'd': // Debug
             debug = 1;
@@ -234,9 +236,7 @@ int main(int argc, char* argv[]) {
     }
 
 
-    setvbuf(stdout, NULL, _IONBF, 0); // Disable buffering for realtime output
 
-    signal(SIGINT, keyinthandler); // Catch CTRL+C
 
 
     s32* bracetable = genbracetable(prog, proglen); // Generate the jump table for loops
