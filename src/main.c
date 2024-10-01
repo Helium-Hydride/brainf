@@ -91,7 +91,7 @@ eof:
 
 
 void keyinthandler(s32 sig) {
-    proglen = 0; // Make for loop exit early without extra condition
+    inst = proglen - 1; // Make it goto the end
 }
 
 
@@ -152,6 +152,45 @@ s32* genbracetable(char* prg, s64 proglen) {
 }
 
 
+s32* genjumptable(char* prg, s64 proglen) {
+    s32* jumptable = malloc((proglen + 1) * sizeof(s32));
+
+    for (s32 ins = 0; ins < proglen; ins++) {
+        switch(prg[ins]) {
+        case '+':
+            jumptable[ins] = 0;
+            break;
+        case '-':
+            jumptable[ins] = 1;
+            break;
+        case '>':
+            jumptable[ins] = 2;
+            break;
+        case '<':
+            jumptable[ins] = 3;
+            break;
+        case '[':
+            jumptable[ins] = 4;
+            break;
+        case ']':
+            jumptable[ins] = 5;
+            break;
+        case '.':
+            jumptable[ins] = 6;
+            break;
+        case ',':
+            jumptable[ins] = 7;
+            break;
+        default:
+            jumptable[ins] = 8;
+            break;
+        }
+    }
+    jumptable[proglen] = 9;
+
+    return jumptable;
+}
+
 
 
 
@@ -195,56 +234,69 @@ int main(int argc, char* argv[]) {
     }
 
 
-    s32* bracetable = genbracetable(prog, proglen); // Generate the jump table for loops
-
-
     setvbuf(stdout, NULL, _IONBF, 0); // Disable buffering for realtime output
 
     signal(SIGINT, keyinthandler); // Catch CTRL+C
 
 
-    for (inst = 0; inst < proglen; inst++) {
-        switch (prog[inst]) {
-        case '+':
-            mem[cell]++;
-            break;
+    s32* bracetable = genbracetable(prog, proglen); // Generate the jump table for loops
+    s32* jumptable = genjumptable(prog, proglen); // Generate the dispatch table
 
-        case '-':
-            mem[cell]--;
-            break;
 
-        case '>':
-            cell++;
-            break;
+    void* gototable[10] = {&&plus, &&minus, &&right, &&left, &&lbracket, &&rbracket, &&dot, &&comma, &&def, &&end};
 
-        case '<':
-            cell--;
-            break;
 
-        case '[':
-            if (mem[cell] == 0)
-                inst = bracetable[inst];
-            break;
+#define DISPATCH goto *gototable[jumptable[++inst]]
 
-        case ']':
-            if (mem[cell] != 0)
-                inst = bracetable[inst];
-            break;
+    goto *gototable[jumptable[0]];
 
-        case '.':
-            putchar(mem[cell]);
-            break;
-
-        case ',':
-            mem[cell] = readinp(mem[cell]);
-            break;
-
-        default:
-            numinst--; // Discount non-BF instructions
-            break;
-        }
+    plus:
+        mem[cell]++;
         numinst++;
-    }
+        DISPATCH;
+
+    minus:
+        mem[cell]--;
+        numinst++;
+        DISPATCH;
+
+    right:
+        cell++;
+        numinst++;
+        DISPATCH;
+
+    left:
+        cell--;
+        numinst++;
+        DISPATCH;
+
+    lbracket:
+        if (mem[cell] == 0)
+            inst = bracetable[inst];
+        numinst++;
+        DISPATCH;
+
+    rbracket:
+        if (mem[cell] != 0)
+            inst = bracetable[inst];
+        numinst++;
+        DISPATCH;
+
+    dot:
+        putchar(mem[cell]);
+        numinst++;
+        DISPATCH;
+
+    comma:
+        mem[cell] = readinp(mem[cell]);
+        numinst++;
+        DISPATCH;
+
+    def:
+        numinst--; // Discount non-BF instructions
+        DISPATCH;
+
+end:
 
 
     if (showinst)
