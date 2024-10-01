@@ -157,8 +157,7 @@ char* genoptprog(char* prg, s64 proglen, s64 *newlen) { // Remove non-BF charact
     }
     newprog[cur] = '\0';
     *newlen = cur - 1;
-    realloc(newprog, cur);
-    return newprog;
+    return realloc(newprog, cur);
 }
 
 
