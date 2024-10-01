@@ -212,12 +212,9 @@ s32* genjumptable(char* prg, s64 proglen) {
         case ',':
             jumptable[ins] = 7;
             break;
-        default:
-            jumptable[ins] = 8;
-            break;
         }
     }
-    jumptable[proglen] = 9;
+    jumptable[proglen] = 8;
 
     return jumptable;
 }
@@ -274,7 +271,7 @@ int main(int argc, char* argv[]) {
     s32* jumptable = genjumptable(shortprog, proglen); // Generate the dispatch table
 
 
-    void* gototable[10] = {&&plus, &&minus, &&right, &&left, &&lbracket, &&rbracket, &&dot, &&comma, &&def, &&end};
+    void* gototable[10] = {&&plus, &&minus, &&right, &&left, &&lbracket, &&rbracket, &&dot, &&comma, &&end};
 
 
 #define DISPATCH goto *gototable[jumptable[++inst]]
@@ -321,10 +318,6 @@ int main(int argc, char* argv[]) {
     comma:
         mem[cell] = readinp(mem[cell]);
         numinst++;
-        DISPATCH;
-
-    def:
-        numinst--; // Discount non-BF instructions
         DISPATCH;
 
 end:
