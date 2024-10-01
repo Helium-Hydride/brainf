@@ -136,9 +136,9 @@ fopenerr:
 }
 
 
-char* genoptprog(char* prg, s64 proglen, s64 *newlen) { // Remove non-BF characters
+char* genshortprog(char* prg, s64 proglen, s64 *newlen) { // Remove non-BF characters
     char* newprog = malloc(proglen + 1);
-    s32 cur = 0;
+    s64 cur = 0;
 
     for (s32 ins = 0; ins < proglen; ins++) {
         switch(prg[ins]) {
@@ -155,9 +155,10 @@ char* genoptprog(char* prg, s64 proglen, s64 *newlen) { // Remove non-BF charact
             break;
         }
     }
-    newprog[cur] = '\0';
-    *newlen = cur - 1;
-    return realloc(newprog, cur);
+    newprog[cur + 1] = '\0';
+    *newlen = cur;
+    newprog = realloc(newprog, cur + 1);
+    return newprog;
 }
 
 
@@ -266,7 +267,7 @@ int main(int argc, char* argv[]) {
     }
 
 
-    shortprog = genoptprog(prog, proglen, &proglen); // Shorten by removing unused instructions
+    shortprog = genshortprog(prog, proglen, &proglen); // Shorten by removing unused instructions
 
 
     s32* bracetable = genbracetable(shortprog, proglen); // Generate the jump table for loops
