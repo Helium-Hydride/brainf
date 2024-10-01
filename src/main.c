@@ -25,6 +25,7 @@ s32 cell = 0;
 u32 inst = 0;
 char* input = NULL;
 char* prog = NULL;
+char* shortprog;
 s64 proglen;
 
 
@@ -135,6 +136,36 @@ fopenerr:
 }
 
 
+char* genoptprog(char* prg, s64 proglen, s64 *newlen) { // Remove non-BF characters
+    char* newprog = malloc(proglen + 1);
+    s32 cur = 0;
+
+    for (s32 ins = 0; ins < proglen; ins++) {
+        switch(prg[ins]) {
+        case '+':
+        case '-':
+        case '>':
+        case '<':
+        case '[':
+        case ']':
+        case '.':
+        case ',':
+            newprog[cur] = prg[ins];
+            cur++;
+            break;
+        }
+    }
+    newprog[cur] = '\0';
+    *newlen = cur - 1;
+    realloc(newprog, cur);
+    return newprog;
+}
+
+
+
+
+
+
 s32* genbracetable(char* prg, s64 proglen) {
     s32 *bracetable = malloc(proglen * sizeof(s32));
 
@@ -236,11 +267,11 @@ int main(int argc, char* argv[]) {
     }
 
 
+    shortprog = genoptprog(prog, proglen, &proglen); // Shorten by removing unused instructions
 
 
-
-    s32* bracetable = genbracetable(prog, proglen); // Generate the jump table for loops
-    s32* jumptable = genjumptable(prog, proglen); // Generate the dispatch table
+    s32* bracetable = genbracetable(shortprog, proglen); // Generate the jump table for loops
+    s32* jumptable = genjumptable(shortprog, proglen); // Generate the dispatch table
 
 
     void* gototable[10] = {&&plus, &&minus, &&right, &&left, &&lbracket, &&rbracket, &&dot, &&comma, &&def, &&end};
