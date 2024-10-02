@@ -22,6 +22,7 @@ char* prog = NULL;
 char* shortprog;
 s64 proglen;
 
+s32* jumptable;
 
 s32 eofbhv = 0; // Behavior of input after EOF
 s32 debug = 0;
@@ -88,7 +89,7 @@ eof:
 
 
 void keyinthandler(s32 sig) {
-    inst = proglen - 1; // Make it goto the end
+    jumptable[inst] = 8; // Make it goto the end
 }
 
 
@@ -252,7 +253,7 @@ int main(int argc, char* argv[]) {
 
 
     s32* bracetable = genbracetable(shortprog, proglen); // Generate the jump table for loops
-    s32* jumptable = genjumptable(shortprog, proglen); // Generate the dispatch table
+    jumptable = genjumptable(shortprog, proglen); // Generate the dispatch table
 
 
     void* gototable[10] = {&&plus, &&minus, &&right, &&left, &&lbracket, &&rbracket, &&dot, &&comma, &&end};
