@@ -12,12 +12,6 @@
 
 
 
-#define GETOPT(opts) \
-s32 _opt; \
-while ((_opt = getopt(argc, argv, (opts))) != -1) switch (_opt)
-
-
-
 #define MEMSIZE 30000
 
 u8 mem[MEMSIZE] = {};
@@ -66,6 +60,7 @@ s32 jumpb(s32 ins, char* prg) {
 }
 
 
+
 u8 readinp(u8 cell) {
     s32 c;
     if (input != NULL) {
@@ -80,20 +75,22 @@ u8 readinp(u8 cell) {
     }
 eof:
     switch (eofbhv) {
-        default:
-        case 0: // Leave value unchanged
-            return cell;
-        case 1: // Set to 0
-            return 0;
-        case 2: // Set to -1
-            return -1;
+    default:
+    case 0: // Leave value unchanged
+        return cell;
+    case 1: // Set to 0
+        return 0;
+    case 2: // Set to -1
+        return -1;
     }
 }
+
 
 
 void keyinthandler(s32 sig) {
     inst = proglen - 1; // Make it goto the end
 }
+
 
 
 // Read file and null terminate.
@@ -136,11 +133,12 @@ fopenerr:
 }
 
 
+
 char* genshortprog(char* prg, s64 proglen, s64 *newlen) { // Remove non-BF characters
     char* newprog = malloc(proglen + 1);
     s64 cur = 0;
 
-    for (s32 ins = 0; ins < proglen; ins++) {
+    for (s32 ins = 0; ins <= proglen; ins++) {
         switch(prg[ins]) {
         case '+':
         case '-':
@@ -150,19 +148,15 @@ char* genshortprog(char* prg, s64 proglen, s64 *newlen) { // Remove non-BF chara
         case ']':
         case '.':
         case ',':
-            newprog[cur] = prg[ins];
-            cur++;
-            break;
+        case '\0':
+            newprog[cur++] = prg[ins]; 
         }
     }
-    newprog[cur + 1] = '\0';
-    *newlen = cur;
-    newprog = realloc(newprog, cur + 1);
+
+    *newlen = cur - 1;
+    newprog = realloc(newprog, cur);
     return newprog;
 }
-
-
-
 
 
 
@@ -171,12 +165,12 @@ s32* genbracetable(char* prg, s64 proglen) {
 
     for (s32 ins = 0; ins < proglen; ins++) {
         switch (prg[ins]) {
-            case '[':
-                bracetable[ins] = jumpf(ins, prg);
-                break;
-            case ']':
-                bracetable[ins] = jumpb(ins, prg);
-                break;
+        case '[':
+            bracetable[ins] = jumpf(ins, prg);
+            break;
+        case ']':
+            bracetable[ins] = jumpb(ins, prg);
+            break;
         }
     }
     return bracetable;
@@ -185,37 +179,23 @@ s32* genbracetable(char* prg, s64 proglen) {
 
 s32* genjumptable(char* prg, s64 proglen) {
     s32* jumptable = malloc((proglen + 1) * sizeof(s32));
+    s32 opcode;
 
-    for (s32 ins = 0; ins < proglen; ins++) {
+    for (s32 ins = 0; ins <= proglen; ins++) {
+        opcode = 8;
         switch(prg[ins]) {
-        case '+':
-            jumptable[ins] = 0;
-            break;
-        case '-':
-            jumptable[ins] = 1;
-            break;
-        case '>':
-            jumptable[ins] = 2;
-            break;
-        case '<':
-            jumptable[ins] = 3;
-            break;
-        case '[':
-            jumptable[ins] = 4;
-            break;
-        case ']':
-            jumptable[ins] = 5;
-            break;
-        case '.':
-            jumptable[ins] = 6;
-            break;
-        case ',':
-            jumptable[ins] = 7;
-            break;
+        case '+': opcode--;
+        case '-': opcode--;
+        case '>': opcode--;
+        case '<': opcode--;
+        case '[': opcode--;
+        case ']': opcode--;
+        case '.': opcode--;
+        case ',': opcode--;
+        case '\0':
+            jumptable[ins] = opcode;
         }
     }
-    jumptable[proglen] = 8;
-
     return jumptable;
 }
 
@@ -225,7 +205,10 @@ s32* genjumptable(char* prg, s64 proglen) {
 int main(int argc, char* argv[]) {
     setvbuf(stdout, NULL, _IONBF, 0); // Disable buffering for realtime output
     signal(SIGINT, keyinthandler); // Catch CTRL+C
-    GETOPT("di:ne:") {
+    
+    s32 opt;
+    while ((opt = getopt(argc, argv, "di:ne:")) != -1) {
+        switch (opt) {
         case 'd': // Debug
             debug = 1;
             break;
@@ -243,6 +226,7 @@ int main(int argc, char* argv[]) {
                 input = "";
             }
             break;
+        }
     }
 
     if (argc < 2 || optind == argc) {
