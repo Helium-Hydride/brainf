@@ -79,13 +79,13 @@ u8 readinp(u8 cell) {
     }
 eof:
     switch (eofbhv) {
-        default:
-        case 0: // Leave value unchanged
-            return cell;
-        case 1: // Set to 0
-            return 0;
-        case 2: // Set to -1
-            return -1;
+    default:
+    case 0: // Leave value unchanged
+        return cell;
+    case 1: // Set to 0
+        return 0;
+    case 2: // Set to -1
+        return -1;
     }
 }
 
@@ -140,12 +140,12 @@ s32* genbracetable(char* prg, s64 proglen) {
 
     for (s32 ins = 0; ins < proglen; ins++) {
         switch (prg[ins]) {
-            case '[':
-                bracetable[ins] = jumpf(ins, prg);
-                break;
-            case ']':
-                bracetable[ins] = jumpb(ins, prg);
-                break;
+        case '[':
+            bracetable[ins] = jumpf(ins, prg);
+            break;
+        case ']':
+            bracetable[ins] = jumpb(ins, prg);
+            break;
         }
     }
     return bracetable;
@@ -156,7 +156,12 @@ s32* genbracetable(char* prg, s64 proglen) {
 
 
 int main(int argc, char* argv[]) {
-    GETOPT("di:ne:") {
+    setvbuf(stdout, NULL, _IONBF, 0); // Disable buffering for realtime output
+    signal(SIGINT, keyinthandler); // Catch CTRL+C
+
+    s32 opt;
+    while ((opt = getopt(argc, argv, "di:ne:")) != -1) {
+        switch (opt) {
         case 'd': // Debug
             debug = 1;
             break;
@@ -174,6 +179,7 @@ int main(int argc, char* argv[]) {
                 input = "";
             }
             break;
+        }
     }
 
     if (argc < 2 || optind == argc) {
@@ -197,10 +203,6 @@ int main(int argc, char* argv[]) {
 
     s32* bracetable = genbracetable(prog, proglen); // Generate the jump table for loops
 
-
-    setvbuf(stdout, NULL, _IONBF, 0); // Disable buffering for realtime output
-
-    signal(SIGINT, keyinthandler); // Catch CTRL+C
 
 
     for (inst = 0; inst < proglen; inst++) {
