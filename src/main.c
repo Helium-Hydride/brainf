@@ -19,9 +19,8 @@ s32 cell = 0;
 u32 inst = 0;
 char* input = NULL;
 char* prog = NULL;
-char* shortprog;
-s64 proglen;
 
+s32* bracetable;
 s32* jumptable;
 
 s32 eofbhv = 0; // Behavior of input after EOF
@@ -41,7 +40,7 @@ s32 jmpbal(char chr) {
 }
 
 
-s32 jumpf(s32 ins, char* prg) {
+u64 jumpf(u64 ins, char* prg) {
     s32 bal = -1;
     while (bal != 0) {
         ins++;
@@ -51,7 +50,7 @@ s32 jumpf(s32 ins, char* prg) {
 }
 
 
-s32 jumpb(s32 ins, char* prg) {
+u64 jumpb(u64 ins, char* prg) {
     s32 bal = 1;
     while (bal != 0) {
         ins--;
@@ -135,12 +134,12 @@ fopenerr:
 
 
 
-char* genshortprog(char* prg, s64 proglen, s64 *newlen) { // Remove non-BF characters
-    char* newprog = malloc(proglen + 1);
-    s64 cur = 0;
-
-    for (s32 ins = 0; ins <= proglen; ins++) {
-        switch(prg[ins]) {
+void genshortprog(char* prog) { // Remove non-BF characters
+    char* prg = prog;
+    char c;
+    u64 cur = 0;
+    while (c = *prg++) {
+        switch(c) {
         case '+':
         case '-':
         case '>':
@@ -149,42 +148,40 @@ char* genshortprog(char* prg, s64 proglen, s64 *newlen) { // Remove non-BF chara
         case ']':
         case '.':
         case ',':
-        case '\0':
-            newprog[cur++] = prg[ins]; 
+            prog[cur++] = c; 
         }
     }
-
-    *newlen = cur - 1;
-    newprog = realloc(newprog, cur);
-    return newprog;
+    prog[cur] = '\0';
 }
 
 
 
-s32* genbracetable(char* prg, s64 proglen) {
-    s32 *bracetable = malloc(proglen * sizeof(s32));
+void genbracetable(char* prog, s32* bracetable) {
+    char* prg = prog;
+    char c;
+    u64 ins = 0;
 
-    for (s32 ins = 0; ins < proglen; ins++) {
-        switch (prg[ins]) {
+    while (c = *prg++) {
+        switch (c) {
         case '[':
-            bracetable[ins] = jumpf(ins, prg);
+            bracetable[ins] = jumpf(ins, prog);
             break;
         case ']':
-            bracetable[ins] = jumpb(ins, prg);
+            bracetable[ins] = jumpb(ins, prog);
             break;
         }
+        ins++;
     }
-    return bracetable;
 }
 
 
-s32* genjumptable(char* prg, s64 proglen) {
-    s32* jumptable = malloc((proglen + 1) * sizeof(s32));
+void genjumptable(char* prog, s32* jumptable) {
     s32 opcode;
+    char c;
 
-    for (s32 ins = 0; ins <= proglen; ins++) {
+    while (c = *prog++) {
         opcode = 8;
-        switch(prg[ins]) {
+        switch(c) {
         case '+': opcode--;
         case '-': opcode--;
         case '>': opcode--;
@@ -193,11 +190,11 @@ s32* genjumptable(char* prg, s64 proglen) {
         case ']': opcode--;
         case '.': opcode--;
         case ',': opcode--;
-        case '\0':
-            jumptable[ins] = opcode;
+            *jumptable = opcode;
         }
+        jumptable++;
     }
-    return jumptable;
+    *jumptable = 8;
 }
 
 
@@ -242,18 +239,20 @@ int main(int argc, char* argv[]) {
         goto err;
     }
 
-    prog = readf(progname, &proglen);
+    prog = readf(progname, NULL);
 
     if (prog == NULL) {
         goto err;
     }
 
 
-    shortprog = genshortprog(prog, proglen, &proglen); // Shorten by removing unused instructions
+    genshortprog(prog); // Shorten by removing unused instructions
 
+    bracetable = malloc(strlen(prog) * sizeof(s32));
+    jumptable = malloc((strlen(prog) + 1) * sizeof(s32));
 
-    s32* bracetable = genbracetable(shortprog, proglen); // Generate the jump table for loops
-    jumptable = genjumptable(shortprog, proglen); // Generate the dispatch table
+    genbracetable(prog, bracetable); // Generate the jump table for loops
+    genjumptable(prog, jumptable); // Generate the dispatch table
 
 
     void* gototable[10] = {&&plus, &&minus, &&right, &&left, &&lbracket, &&rbracket, &&dot, &&comma, &&end};
