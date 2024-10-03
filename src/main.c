@@ -157,12 +157,8 @@ void genshortprog(char* prog) { // Remove non-BF characters
 
 
 void genbracetable(char* prog, s32* bracetable) {
-    char* prg = prog;
-    char c;
-    u64 ins = 0;
-
-    while (c = *prg++) {
-        switch (c) {
+    for (u64 ins = 0; prog[ins]; ins++) {
+        switch (prog[ins]) {
         case '[':
             bracetable[ins] = jumpf(ins, prog);
             break;
@@ -170,7 +166,6 @@ void genbracetable(char* prog, s32* bracetable) {
             bracetable[ins] = jumpb(ins, prog);
             break;
         }
-        ins++;
     }
 }
 
