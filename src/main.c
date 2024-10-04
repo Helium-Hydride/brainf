@@ -22,6 +22,7 @@ char* prog = NULL;
 
 s32* bracetable;
 s32* optable;
+void** jumptable;
 
 s32 eofbhv = 0; // Behavior of input after EOF
 s32 debug = 0;
@@ -196,6 +197,72 @@ void genoptable(char* prog, s32* optable) {
 }
 
 
+void genjumptable(s32* optable, void** jumptable, void* gototable[]) {
+    u64 i;
+    for (i = 0; optable[i] != 8; i++) {
+        jumptable[i] = gototable[optable[i]];
+    }
+    jumptable[i] = gototable[8];
+}
+
+
+
+
+
+void interpret(void) {
+    void* gototable[9] = {&&plus, &&minus, &&right, &&left, &&lbracket, &&rbracket, &&dot, &&comma, &&end};
+    genjumptable(optable, jumptable, gototable); // Generate the dispatch table
+
+#define DISPATCH goto *jumptable[++inst]
+
+    goto *jumptable[0];
+
+    plus:
+        mem[cell]++;
+        numinst++;
+        DISPATCH;
+
+    minus:
+        mem[cell]--;
+        numinst++;
+        DISPATCH;
+
+    right:
+        cell++;
+        numinst++;
+        DISPATCH;
+
+    left:
+        cell--;
+        numinst++;
+        DISPATCH;
+
+    lbracket:
+        if (mem[cell] == 0)
+            inst = bracetable[inst];
+        numinst++;
+        DISPATCH;
+
+    rbracket:
+        if (mem[cell] != 0)
+            inst = bracetable[inst];
+        numinst++;
+        DISPATCH;
+
+    dot:
+        putchar(mem[cell]);
+        numinst++;
+        DISPATCH;
+
+    comma:
+        mem[cell] = readinp(mem[cell]);
+        numinst++;
+        DISPATCH;
+end:
+}
+
+
+
 
 
 int main(int argc, char* argv[]) {
@@ -248,61 +315,13 @@ int main(int argc, char* argv[]) {
 
     bracetable = malloc(strlen(prog) * sizeof(s32));
     optable = malloc((strlen(prog) + 1) * sizeof(s32));
+    jumptable = malloc((strlen(prog) + 1) * sizeof(void *));
 
     genbracetable(prog, bracetable); // Generate the jump table for loops
     genoptable(prog, optable); // Generate the opcode table
 
 
-    void* gototable[10] = {&&plus, &&minus, &&right, &&left, &&lbracket, &&rbracket, &&dot, &&comma, &&end};
-
-
-#define DISPATCH goto *gototable[optable[++inst]]
-
-    goto *gototable[optable[0]];
-
-    plus:
-        mem[cell]++;
-        numinst++;
-        DISPATCH;
-
-    minus:
-        mem[cell]--;
-        numinst++;
-        DISPATCH;
-
-    right:
-        cell++;
-        numinst++;
-        DISPATCH;
-
-    left:
-        cell--;
-        numinst++;
-        DISPATCH;
-
-    lbracket:
-        if (mem[cell] == 0)
-            inst = bracetable[inst];
-        numinst++;
-        DISPATCH;
-
-    rbracket:
-        if (mem[cell] != 0)
-            inst = bracetable[inst];
-        numinst++;
-        DISPATCH;
-
-    dot:
-        putchar(mem[cell]);
-        numinst++;
-        DISPATCH;
-
-    comma:
-        mem[cell] = readinp(mem[cell]);
-        numinst++;
-        DISPATCH;
-
-end:
+    interpret();
 
 
     if (showinst)
