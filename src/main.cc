@@ -12,6 +12,9 @@
 #include <cmath>
 #include <atomic>
 #include <thread>
+#include <exception>
+#include <filesystem>
+#include <unistd.h>
 
 
 #include "typedefs.h"
@@ -23,12 +26,12 @@ u8 mem[mem_size] = {};
 s64 cell = 0;
 u64 inst = 0;
 
-u64 num_inst = 0;
+u64 num_insts = 0;
 
 std::string input;
 
 enum eof_bhv {
-    MINUS_ONE, ZERO, UNCHANGED
+    UNCHANGED, ZERO, MINUS_ONE
 };
 
 struct {
@@ -45,7 +48,7 @@ enum instruction {
     PLUS, MINUS, LEFT, RIGHT, LBRACKET, RBRACKET, COMMA, DOT, END, NO_OP
 };
 
-constexpr s32 num_insts = 9;
+constexpr s32 num_ops = 9;
 
 
 instruction toinst(char c) {
@@ -77,7 +80,7 @@ std::vector<instruction> genoptable(const std::string& prog) {
 }
 
 
-std::vector<void*> genjumptable(const std::vector<instruction>& optable, const std::array<void*, num_insts>& gototable) {
+std::vector<void*> genjumptable(const std::vector<instruction>& optable, const std::array<void*, num_ops>& gototable) {
     std::vector<void*> table;
 
     for (const instruction& op: optable) {
@@ -176,10 +179,10 @@ eof:
 }
 
 
-#define DISPATCH ++num_inst; goto *jumptablep[++inst]
+#define DISPATCH ++num_insts; goto *jumptablep[++inst]
 
 void interpret(const std::vector<instruction>& optable, const std::vector<u64>& bracetable) {
-    std::array<void*, num_insts> gototable = {&&plus, &&minus, &&left, &&right, &&lbracket, &&rbracket, &&comma, &&dot};
+    std::array<void*, num_ops> gototable = {&&plus, &&minus, &&left, &&right, &&lbracket, &&rbracket, &&comma, &&dot};
 
     const std::vector<void*> jumptable = genjumptable(optable, gototable);
     
@@ -220,10 +223,70 @@ end:;
 
 
 
+void parse_args(s32 argc, char** argv) {
+    s32 opt;
+    while ((opt = getopt(argc, argv, "di:ne:")) != -1) {
+        switch (opt) {
+        case 'd': // Debug
+            flags.debug = true;
+            break;
+        case 'i': // Input in args instead of stdin
+            input = optarg;
+            break;
+        case 'n': // Show number of instructions
+            flags.show_inst = true;
+            break;
+        case 'e': // Behavior of input after EOF
+            flags.eofbhv = (eof_bhv)atoi(optarg);
+            break;
+        case '?':
+            if (optopt == 'i') {
+                input = "";
+            }
+            break;
+        }
+    }
+}
+
+
+
 
 
 int main(int argc, char* argv[]) {
+    parse_args(argc, argv);
+
+    setvbuf(stdout, nullptr, _IONBF, 0);
+
+    
+    if (argc < 2 || optind == argc) {
+        throw std::invalid_argument("Error: no program given");
+    }
+
+    std::string progname = argv[optind];
+
+    if (!std::filesystem::exists(progname)) {
+        throw std::invalid_argument("Error: program not found");
+    }
 
 
 
+    std::string prog = readfile(progname);
+
+    auto optable = genoptable(prog);
+    auto bracetable = genbracetable(optable);
+    
+    interpret(optable, bracetable);
+
+
+    if (flags.show_inst) 
+        std::cout << "\nNumber of instructions: " << num_insts;
+
+    if (flags.debug) {
+        putchar('\n');
+        for (s32 i = 0; i < mem_size; i++) {
+            printf("%02X ", mem[i]);
+        }
+    }
+
+    std::cout << std::endl;
 }
