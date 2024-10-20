@@ -3,6 +3,7 @@
 #include <fstream>
 #include <sstream>
 #include <memory>
+#include <array>
 #include <map>
 #include <unordered_map>
 #include <vector>
@@ -45,7 +46,7 @@ struct {
 
 
 enum instruction {
-    PLUS, MINUS, LEFT, RIGHT, LBRACKET, RBRACKET, COMMA, DOT, END, NO_OP
+    PLUS, MINUS, RIGHT, LEFT, LBRACKET, RBRACKET, DOT, COMMA, END, NO_OP
 };
 
 constexpr s32 num_ops = 9;
@@ -55,12 +56,12 @@ instruction toinst(char c) {
     switch (c) {
     case '+': return PLUS;
     case '-': return MINUS;
-    case '<': return LEFT; 
     case '>': return RIGHT; 
+    case '<': return LEFT; 
     case '[': return LBRACKET;
     case ']': return RBRACKET;
-    case ',': return COMMA;
     case '.': return DOT;
+    case ',': return COMMA;
     default:  return NO_OP;
     }
 }
@@ -135,8 +136,8 @@ u64 jumpd(u64 ins, const std::vector<instruction>& optable) {
 std::vector<u64> genbracetable(const std::vector<instruction>& optable) {
     std::vector<u64> table;
 
-    for (const instruction& ins: optable) {
-        table.push_back(jumpd(ins, optable));
+    for (s32 i = 0; i < optable.size(); i++) {
+        table.push_back(jumpd(i, optable));
     }
 
     return table;
@@ -182,7 +183,7 @@ eof:
 #define DISPATCH ++num_insts; goto *jumptablep[++inst]
 
 void interpret(const std::vector<instruction>& optable, const std::vector<u64>& bracetable) {
-    std::array<void*, num_ops> gototable = {&&plus, &&minus, &&left, &&right, &&lbracket, &&rbracket, &&comma, &&dot};
+    std::array<void*, num_ops> gototable = {&&plus, &&minus, &&right, &&left, &&lbracket, &&rbracket, &&dot, &&comma, &&end};
 
     const std::vector<void*> jumptable = genjumptable(optable, gototable);
     
@@ -197,10 +198,10 @@ void interpret(const std::vector<instruction>& optable, const std::vector<u64>& 
     minus:
         --mem[cell];
         DISPATCH;
-    left:
+    right:
         ++cell;
         DISPATCH;
-    right:
+    left:
         --cell;
         DISPATCH;
     lbracket:
@@ -211,12 +212,13 @@ void interpret(const std::vector<instruction>& optable, const std::vector<u64>& 
         if (mem[cell] != 0)
             inst = bracetablep[inst];
         DISPATCH;
-    comma:
-        readinp(mem[cell]);
-        DISPATCH;
     dot:
         putchar(mem[cell]);
         DISPATCH;
+    comma:
+        readinp(mem[cell]);
+        DISPATCH;
+    
 
 end:;
 }
@@ -282,7 +284,7 @@ int main(int argc, char* argv[]) {
         std::cout << "\nNumber of instructions: " << num_insts;
 
     if (flags.debug) {
-        putchar('\n');
+        std::cout << std::endl;
         for (s32 i = 0; i < mem_size; i++) {
             printf("%02X ", mem[i]);
         }
