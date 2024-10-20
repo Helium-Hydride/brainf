@@ -13,7 +13,9 @@
 #include <cmath>
 #include <atomic>
 #include <thread>
+#include <functional>
 #include <exception>
+#include <csignal>
 #include <filesystem>
 #include <unistd.h>
 
@@ -180,15 +182,25 @@ eof:
 }
 
 
+
+std::function<void(int)> int_handler_helper;
+void int_handler(s32 sig) {int_handler_helper(sig);}
+
+
+
 #define DISPATCH ++num_insts; goto *jumptablep[++inst]
 
 void interpret(const std::vector<instruction>& optable, const std::vector<u64>& bracetable) {
     std::array<void*, num_ops> gototable = {&&plus, &&minus, &&right, &&left, &&lbracket, &&rbracket, &&dot, &&comma, &&end};
 
-    const std::vector<void*> jumptable = genjumptable(optable, gototable);
+    std::vector<void*> jumptable = genjumptable(optable, gototable);
     
-    void* const* jumptablep = jumptable.data();
+    void** jumptablep = jumptable.data();
     const u64* bracetablep = bracetable.data();
+
+    int_handler_helper = [&](s32 sig) {
+        jumptablep[inst] = gototable[END];
+    };
 
     goto *jumptablep[0];
 
@@ -277,6 +289,9 @@ int main(int argc, char* argv[]) {
     auto optable = genoptable(prog);
     auto bracetable = genbracetable(optable);
     
+
+    std::signal(SIGINT, int_handler); // Handle CTRL+C
+
     interpret(optable, bracetable);
 
 
