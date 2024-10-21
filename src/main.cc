@@ -7,6 +7,7 @@
 #include <map>
 #include <unordered_map>
 #include <vector>
+#include <stack>
 #include <string>
 #include <type_traits>
 #include <numeric>
@@ -94,56 +95,35 @@ std::vector<void*> genjumptable(const std::vector<instruction>& optable, const s
 }
 
 
-s32 jmpbal(instruction ins) { 
-    switch (ins) {
-    case LBRACKET:
-        return -1;
-    case RBRACKET:
-        return 1;
-    default:
-        return 0;
-    }
-}
-
-u64 jumpf(u64 ins, const std::vector<instruction>& optable) {
-    s32 bal = -1;
-    while (bal != 0) {
-        ins++;
-        bal += jmpbal(optable[ins]);
-    }
-    return ins;
-}
-
-u64 jumpb(u64 ins, const std::vector<instruction>& optable) {
-    s32 bal = 1;
-    while (bal != 0) {
-        ins--;
-        bal += jmpbal(optable[ins]);
-    }
-    return ins;
-}
-
-u64 jumpd(u64 ins, const std::vector<instruction>& optable) {
-    switch (optable[ins]) {
-    case LBRACKET:
-        return jumpf(ins, optable);
-    case RBRACKET:
-        return jumpb(ins, optable);
-    default:
-        return 0;
-    }
-}
-
-
 std::vector<u64> genbracetable(const std::vector<instruction>& optable) {
     std::vector<u64> table;
+    table.reserve(optable.size());
 
-    for (s32 i = 0; i < optable.size(); i++) {
-        table.push_back(jumpd(i, optable));
+    std::stack<u64> lstack;
+    
+    for (u64 i = 0; i < optable.size(); i++) {
+        switch (optable[i]) {
+        case LBRACKET:
+            lstack.push(i);
+            break;
+        case RBRACKET:
+            if (lstack.empty())
+                throw std::invalid_argument("Error: mismatched ]");
+
+            table[i] = lstack.top();
+            table[lstack.top()] = i;
+            lstack.pop();
+        default:;
+        }
     }
+
+    if (!lstack.empty())
+        throw std::invalid_argument("Error: mismatched [");
 
     return table;
 }
+
+
 
 
 std::string readfile(const std::string& name) {
@@ -153,8 +133,6 @@ std::string readfile(const std::string& name) {
 
     return buf.str();
 }
-
-
 
 
 
@@ -198,11 +176,14 @@ void interpret(const std::vector<instruction>& optable, const std::vector<u64>& 
     void** jumptablep = jumptable.data();
     const u64* bracetablep = bracetable.data();
 
-    int_handler_helper = [&](s32 sig) {
+
+    int_handler_helper = [&] (s32 sig) {
         jumptablep[inst] = gototable[END];
     };
 
+
     goto *jumptablep[0];
+
 
     plus:
         ++mem[cell];
@@ -231,7 +212,6 @@ void interpret(const std::vector<instruction>& optable, const std::vector<u64>& 
         readinp(mem[cell]);
         DISPATCH;
     
-
 end:;
 }
 
@@ -287,8 +267,14 @@ int main(int argc, char* argv[]) {
     std::string prog = readfile(progname);
 
     auto optable = genoptable(prog);
-    auto bracetable = genbracetable(optable);
-    
+    std::vector<u64> bracetable;
+
+    try {
+        bracetable = genbracetable(optable);
+    } catch (std::invalid_argument err) {
+        std::cerr << err.what() << std::endl;
+        exit(EXIT_FAILURE);
+    }
 
     std::signal(SIGINT, int_handler); // Handle CTRL+C
 
