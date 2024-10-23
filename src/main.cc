@@ -32,7 +32,7 @@ u64 inst = 0;
 
 u64 num_insts = 0;
 
-std::string input;
+std::string_view input;
 
 enum eof_bhv {
     UNCHANGED, ZERO, MINUS_ONE
@@ -127,8 +127,8 @@ std::vector<u64> genbracetable(const std::vector<instruction>& optable) {
 
 
 std::string readfile(const std::string& name) {
-    std::ifstream f(name);
-    std::stringstream buf;
+    std::ifstream f {name};
+    std::ostringstream buf;
     buf << f.rdbuf();
 
     return buf.str();
@@ -136,20 +136,7 @@ std::string readfile(const std::string& name) {
 
 
 
-
-void readinp(u8& cell) {
-    static u64 index;
-    if (flags.input_in_args) {
-        if (index < input.length()) {
-            cell = input[index++];
-        } else goto eof;
-    } else {
-        s32 chr = getchar();
-        if (chr != EOF) {
-            cell = chr;
-        } else goto eof;
-    }
-eof:
+void set_cell_on_eof(u8& cell) {
     switch (flags.eofbhv) {
     case UNCHANGED: break;
     case ZERO:
@@ -159,10 +146,29 @@ eof:
     }
 }
 
+void readinp(u8& cell) {
+    static u64 index;
+    if (flags.input_in_args) {
+        if (index < input.length()) {
+            cell = input[index++];
+            return;
+        }
+    } else {
+        s32 chr = getchar();
+        if (chr != EOF) {
+            cell = chr;
+            return;
+        }
+    }
+
+    set_cell_on_eof(cell);
+}
 
 
-std::function<void(int)> int_handler_helper;
-void int_handler(s32 sig) {int_handler_helper(sig);}
+
+
+std::function<void(int)> sig_handler_helper;
+void sig_handler(s32 sig) {sig_handler_helper(sig);}
 
 
 
@@ -177,8 +183,16 @@ void interpret(const std::vector<instruction>& optable, const std::vector<u64>& 
     const u64* bracetablep = bracetable.data();
 
 
-    int_handler_helper = [&] (s32 sig) {
-        jumptablep[inst] = gototable[END];
+
+    sig_handler_helper = [&] (s32 sig) {
+        if (sig == SIGINT) {
+            jumptablep[inst] = gototable[END];
+        } 
+        
+        if (sig == SIGSEGV) {
+            std::cerr << "\nSegmentation fault!" << std::endl;
+            exit(EXIT_FAILURE);
+        }
     };
 
 
@@ -225,6 +239,7 @@ void parse_args(s32 argc, char** argv) {
             flags.debug = true;
             break;
         case 'i': // Input in args instead of stdin
+            flags.input_in_args = true;
             input = optarg;
             break;
         case 'n': // Show number of instructions
@@ -249,17 +264,19 @@ void parse_args(s32 argc, char** argv) {
 int main(int argc, char* argv[]) {
     parse_args(argc, argv);
 
-    setvbuf(stdout, nullptr, _IONBF, 0);
+    setbuf(stdout, nullptr); // Disable buffering
 
-    
+
     if (argc < 2 || optind == argc) {
-        throw std::invalid_argument("Error: no program given");
+        std::cerr << "Error: no program given" << std::endl;
+        exit(EXIT_FAILURE);
     }
 
     std::string progname = argv[optind];
 
     if (!std::filesystem::exists(progname)) {
-        throw std::invalid_argument("Error: program not found");
+        std::cerr << "Error: program not found" << std::endl;
+        exit(EXIT_FAILURE);
     }
 
 
@@ -276,7 +293,10 @@ int main(int argc, char* argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    std::signal(SIGINT, int_handler); // Handle CTRL+C
+
+    std::signal(SIGINT, sig_handler); // Handle CTRL+C
+    std::signal(SIGSEGV, sig_handler);
+
 
     interpret(optable, bracetable);
 
