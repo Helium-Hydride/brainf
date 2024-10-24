@@ -41,11 +41,10 @@ enum eof_bhv {
 
 struct {
     eof_bhv eofbhv;
-    bool debug;
     bool show_inst;
     bool input_in_args;
     bool prog_in_args;
-} flags = {UNCHANGED, false, false, false, false};
+} flags = {UNCHANGED, false, false, false};
 
 
 
@@ -235,11 +234,8 @@ end:;
 
 void parse_args(s32 argc, char** argv) {
     s32 opt;
-    while ((opt = getopt(argc, argv, "di:ne:p:")) != -1) {
+    while ((opt = getopt(argc, argv, "i:ne:p:")) != -1) {
         switch (opt) {
-        case 'd': // Debug
-            flags.debug = true;
-            break;
         case 'i': // Input in args instead of stdin
             flags.input_in_args = true;
             input = optarg;
@@ -309,14 +305,5 @@ int main(int argc, char* argv[]) {
 
 
     if (flags.show_inst) 
-        std::cout << "\nNumber of instructions: " << num_insts;
-
-    if (flags.debug) {
-        std::cout << std::endl;
-        for (s32 i = 0; i < mem_size; i++) {
-            printf("%02X ", mem[i]);
-        }
-    }
-
-    std::cout << std::endl;
+        std::cout << "\nNumber of instructions: " << num_insts << std::endl;
 }
