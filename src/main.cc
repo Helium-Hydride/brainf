@@ -33,6 +33,7 @@ u64 inst = 0;
 u64 num_insts = 0;
 
 std::string_view input;
+std::string_view prog_from_args;
 
 enum eof_bhv {
     UNCHANGED, ZERO, MINUS_ONE
@@ -43,7 +44,8 @@ struct {
     bool debug;
     bool show_inst;
     bool input_in_args;
-} flags = {UNCHANGED, false, false, false};
+    bool prog_in_args;
+} flags = {UNCHANGED, false, false, false, false};
 
 
 
@@ -70,7 +72,7 @@ instruction toinst(char c) {
 }
 
 
-std::vector<instruction> genoptable(const std::string& prog) {
+std::vector<instruction> genoptable(std::string_view prog) {
     std::vector<instruction> table;
 
     for (const char& c: prog) {
@@ -233,7 +235,7 @@ end:;
 
 void parse_args(s32 argc, char** argv) {
     s32 opt;
-    while ((opt = getopt(argc, argv, "di:ne:")) != -1) {
+    while ((opt = getopt(argc, argv, "di:ne:p:")) != -1) {
         switch (opt) {
         case 'd': // Debug
             flags.debug = true;
@@ -248,10 +250,9 @@ void parse_args(s32 argc, char** argv) {
         case 'e': // Behavior of input after EOF
             flags.eofbhv = (eof_bhv)atoi(optarg);
             break;
-        case '?':
-            if (optopt == 'i') {
-                input = "";
-            }
+        case 'p':
+            flags.prog_in_args = true;
+            prog_from_args = optarg;
             break;
         }
     }
@@ -267,21 +268,27 @@ int main(int argc, char* argv[]) {
     setbuf(stdout, nullptr); // Disable buffering
 
 
-    if (argc < 2 || optind == argc) {
-        std::cerr << "Error: no program given" << std::endl;
-        exit(EXIT_FAILURE);
+    std::string progname;
+    std::string prog;
+    
+    if (!flags.prog_in_args) {
+        if (argc < 2 || optind == argc) {
+            std::cerr << "Error: program not given" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+
+        progname = argv[optind];
+
+        if (!std::filesystem::exists(progname)) {
+            std::cerr << "Error: progranm not found" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+
+        prog = readfile(progname);
+    } else {
+        prog = prog_from_args;
     }
 
-    std::string progname = argv[optind];
-
-    if (!std::filesystem::exists(progname)) {
-        std::cerr << "Error: program not found" << std::endl;
-        exit(EXIT_FAILURE);
-    }
-
-
-
-    std::string prog = readfile(progname);
 
     auto optable = genoptable(prog);
     std::vector<u64> bracetable;
