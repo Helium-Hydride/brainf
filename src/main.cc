@@ -2,6 +2,7 @@
 #include <iomanip>
 #include <fstream>
 #include <sstream>
+#include <print>
 #include <memory>
 #include <array>
 #include <map>
@@ -16,6 +17,7 @@
 #include <thread>
 #include <functional>
 #include <exception>
+#include <expected>
 #include <csignal>
 #include <filesystem>
 #include <unistd.h>
@@ -96,7 +98,7 @@ std::vector<void*> genjumptable(const std::vector<instruction>& optable, const s
 }
 
 
-std::vector<u64> genbracetable(const std::vector<instruction>& optable) {
+std::expected<std::vector<u64>, std::string> genbracetable(const std::vector<instruction>& optable) {
     std::vector<u64> table;
     table.reserve(optable.size());
 
@@ -109,7 +111,7 @@ std::vector<u64> genbracetable(const std::vector<instruction>& optable) {
             break;
         case RBRACKET:
             if (lstack.empty())
-                throw std::invalid_argument("Error: mismatched ]");
+                return std::unexpected("Error: mismatched ]");
 
             table[i] = lstack.top();
             table[lstack.top()] = i;
@@ -119,7 +121,7 @@ std::vector<u64> genbracetable(const std::vector<instruction>& optable) {
     }
 
     if (!lstack.empty())
-        throw std::invalid_argument("Error: mismatched [");
+        return std::unexpected("Error: mismatched [");
 
     return table;
 }
@@ -191,7 +193,7 @@ void interpret(const std::vector<instruction>& optable, const std::vector<u64>& 
         } 
         
         if (sig == SIGSEGV) {
-            std::cerr << "\nSegmentation fault!" << std::endl;
+            std::println(stderr, "\nSegmentation fault!");
             exit(EXIT_FAILURE);
         }
     };
@@ -269,14 +271,14 @@ int main(int argc, char* argv[]) {
     
     if (!flags.prog_in_args) {
         if (argc < 2 || optind == argc) {
-            std::cerr << "Error: program not given" << std::endl;
+            std::println(stderr, "Error: program not given");
             exit(EXIT_FAILURE);
         }
 
         progname = argv[optind];
 
         if (!std::filesystem::exists(progname)) {
-            std::cerr << "Error: program not found" << std::endl;
+            std::println(stderr, "Error: program not found");
             exit(EXIT_FAILURE);
         }
 
@@ -287,12 +289,10 @@ int main(int argc, char* argv[]) {
 
 
     auto optable = genoptable(prog);
-    std::vector<u64> bracetable;
+    auto bracetable = genbracetable(optable);
 
-    try {
-        bracetable = genbracetable(optable);
-    } catch (std::invalid_argument err) {
-        std::cerr << err.what() << std::endl;
+    if (!bracetable) {
+        std::println(stderr, "{0}", bracetable.error());
         exit(EXIT_FAILURE);
     }
 
@@ -301,9 +301,9 @@ int main(int argc, char* argv[]) {
     std::signal(SIGSEGV, sig_handler);
 
 
-    interpret(optable, bracetable);
+    interpret(optable, *bracetable);
 
 
     if (flags.show_inst) 
-        std::cout << "\nNumber of instructions: " << num_insts << std::endl;
+        std::println("\nNumber of instructions: {0}", num_insts);
 }

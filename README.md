@@ -1,4 +1,4 @@
-A brainfuck interpreter I made. Compile using `g++ src/main.cc -O2 -o bf`.
+A brainfuck interpreter I made. Compile using `g++-14 src/main.cc -O2 -std=gnu++23 -o bf`.
 
 Executes about 300M to 500M instructions per second, depending on the program.
 
