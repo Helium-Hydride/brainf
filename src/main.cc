@@ -276,7 +276,7 @@ int main(int argc, char* argv[]) {
         progname = argv[optind];
 
         if (!std::filesystem::exists(progname)) {
-            std::cerr << "Error: progranm not found" << std::endl;
+            std::cerr << "Error: program not found" << std::endl;
             exit(EXIT_FAILURE);
         }
 
