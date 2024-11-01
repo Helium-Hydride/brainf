@@ -1,14 +1,3 @@
-#include <ciso646>
-#ifndef __clang__
-#error Clang must be used for musttail attribute
-#endif
-#ifndef _LIBCPP_VERSION
-#error libc++ must be used
-#endif
-#if _LIBCPP_VERSION < 180100
-#error libc++ version 18 must be installed
-#endif
-
 #include <iostream>
 #include <iomanip>
 #include <fstream>
