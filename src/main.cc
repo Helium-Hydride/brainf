@@ -1,3 +1,14 @@
+#include <ciso646>
+#ifndef __clang__
+#error Clang must be used for musttail attribute
+#endif
+#ifndef _LIBCPP_VERSION
+#error libc++ must be used
+#endif
+#if _LIBCPP_VERSION < 180100
+#error libc++ version 18 must be installed
+#endif
+
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -36,6 +47,14 @@ u64 num_insts = 0;
 
 std::string_view input;
 std::string_view prog_from_args;
+
+typedef void (*instfunc)();
+
+const u64* bracetablep;
+instfunc* jumptablep;
+
+
+
 
 enum eof_bhv {
     UNCHANGED, ZERO, MINUS_ONE
@@ -87,11 +106,11 @@ std::vector<instruction> genoptable(std::string_view prog) {
 }
 
 
-std::vector<void*> genjumptable(const std::vector<instruction>& optable, const std::array<void*, num_ops>& gototable) {
-    std::vector<void*> table;
+std::vector<instfunc> genjumptable(const std::vector<instruction>& optable, const std::array<instfunc, num_ops>& funcptable) {
+    std::vector<instfunc> table;
 
     for (const instruction& op: optable) {
-        table.push_back(gototable[op]);
+        table.push_back(funcptable[op]);
     }
 
     return table;
@@ -175,21 +194,79 @@ void sig_handler(s32 sig) {sig_handler_helper(sig);}
 
 
 
-#define DISPATCH ++num_insts; goto *jumptablep[++inst]
+#define MUSTTAIL __attribute__((musttail))
+
+
+void dispatch() {
+    ++num_insts;
+    MUSTTAIL return jumptablep[++inst]();
+}
+
+
+
+void plus() {
+    mem[cell]++;
+    MUSTTAIL return dispatch();
+}
+
+void minus() {
+    mem[cell]--;
+    MUSTTAIL return dispatch();
+}
+
+void right() {
+    cell++;
+    MUSTTAIL return dispatch();
+}
+
+void left() {
+    cell--;
+    MUSTTAIL return dispatch();
+}
+
+void lbracket() {
+    if (mem[cell] == 0)
+        inst = bracetablep[inst];
+    MUSTTAIL return dispatch();
+}
+
+void rbracket() {
+    if (mem[cell] != 0)
+        inst = bracetablep[inst];
+    MUSTTAIL return dispatch();
+}
+
+void dot() {
+    putchar(mem[cell]);
+    MUSTTAIL return dispatch();
+}
+
+void comma() {
+    readinp(mem[cell]);
+    MUSTTAIL return dispatch();
+}
+
+void end() {
+
+}
+
+
+
+
+std::array<instfunc, num_ops> funcptable = {plus, minus, right, left, lbracket, rbracket, dot, comma, end};
+
 
 void interpret(const std::vector<instruction>& optable, const std::vector<u64>& bracetable) {
-    std::array<void*, num_ops> gototable = {&&plus, &&minus, &&right, &&left, &&lbracket, &&rbracket, &&dot, &&comma, &&end};
 
-    std::vector<void*> jumptable = genjumptable(optable, gototable);
+    std::vector<instfunc> jumptable = genjumptable(optable, funcptable);
     
-    void** jumptablep = jumptable.data();
-    const u64* bracetablep = bracetable.data();
-
+    jumptablep = jumptable.data();
+    bracetablep = bracetable.data();
 
 
     sig_handler_helper = [&] (s32 sig) {
         if (sig == SIGINT) {
-            jumptablep[inst] = gototable[END];
+            jumptablep[inst] = funcptable[END];
         } 
         
         if (sig == SIGSEGV) {
@@ -198,38 +275,7 @@ void interpret(const std::vector<instruction>& optable, const std::vector<u64>& 
         }
     };
 
-
-    goto *jumptablep[0];
-
-
-    plus:
-        ++mem[cell];
-        DISPATCH;
-    minus:
-        --mem[cell];
-        DISPATCH;
-    right:
-        ++cell;
-        DISPATCH;
-    left:
-        --cell;
-        DISPATCH;
-    lbracket:
-        if (mem[cell] == 0)
-            inst = bracetablep[inst];
-        DISPATCH;
-    rbracket:
-        if (mem[cell] != 0)
-            inst = bracetablep[inst];
-        DISPATCH;
-    dot:
-        putchar(mem[cell]);
-        DISPATCH;
-    comma:
-        readinp(mem[cell]);
-        DISPATCH;
-    
-end:;
+    jumptablep[0]();
 }
 
 
