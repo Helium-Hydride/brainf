@@ -269,7 +269,7 @@ void parse_args(s32 argc, char** argv) {
             flags.show_inst = true;
             break;
         case 'e': // Behavior of input after EOF
-            flags.eofbhv = (eof_bhv)atoi(optarg);
+            flags.eofbhv = static_cast<eof_bhv>(atoi(optarg));
             break;
         case 'p':
             flags.prog_in_args = true;
