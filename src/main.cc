@@ -182,9 +182,14 @@ std::function<void(int)> sig_handler_helper;
 void sig_handler(s32 sig) {sig_handler_helper(sig);}
 
 
-// Hope GCC does the tail calls (Only works with -O2)
-#define MUSTTAIL 
 
+#ifdef __clang__
+#define MUSTTAIL __attribute__((musttail))
+#else
+#define MUSTTAIL
+#endif
+
+// GCC will only optimize this with O2
 #define DISPATCH ++num_insts; MUSTTAIL return jumptablep[++inst]();
 
 
