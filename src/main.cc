@@ -185,77 +185,62 @@ void sig_handler(s32 sig) {sig_handler_helper(sig);}
 
 #define MUSTTAIL __attribute__((musttail))
 
-
-void dispatch() {
-    ++num_insts;
-    MUSTTAIL return jumptablep[++inst]();
-}
+#define DISPATCH ++num_insts; MUSTTAIL return jumptablep[++inst]();
 
 
 
 void plus() {
     mem[cell]++;
-    MUSTTAIL return dispatch();
+    DISPATCH;
 }
 
 void minus() {
     mem[cell]--;
-    MUSTTAIL return dispatch();
+    DISPATCH;
 }
 
 void right() {
     cell++;
-    MUSTTAIL return dispatch();
+    DISPATCH;
 }
 
 void left() {
     cell--;
-    MUSTTAIL return dispatch();
+    DISPATCH;
 }
 
 void lbracket() {
     if (mem[cell] == 0)
         inst = bracetablep[inst];
-    MUSTTAIL return dispatch();
+    DISPATCH;
 }
 
 void rbracket() {
     if (mem[cell] != 0)
         inst = bracetablep[inst];
-    MUSTTAIL return dispatch();
+    DISPATCH;
 }
 
 void dot() {
     putchar(mem[cell]);
-    MUSTTAIL return dispatch();
+    DISPATCH;
 }
 
 void comma() {
     readinp(mem[cell]);
-    MUSTTAIL return dispatch();
+    DISPATCH;
 }
 
-void end() {
-
-}
-
-
+void end() {}
 
 
 std::array<instfunc, num_ops> funcptable = {plus, minus, right, left, lbracket, rbracket, dot, comma, end};
 
 
-void interpret(const std::vector<instruction>& optable, const std::vector<u64>& bracetable) {
-
-    std::vector<instfunc> jumptable = genjumptable(optable, funcptable);
-    
-    jumptablep = jumptable.data();
-    bracetablep = bracetable.data();
-
-
+void interpret() {
     sig_handler_helper = [&] (s32 sig) {
         if (sig == SIGINT) {
-            jumptablep[inst] = funcptable[END];
+            jumptablep[inst] = end;
         } 
         
         if (sig == SIGSEGV) {
@@ -263,6 +248,7 @@ void interpret(const std::vector<instruction>& optable, const std::vector<u64>& 
             exit(EXIT_FAILURE);
         }
     };
+
 
     jumptablep[0]();
 }
@@ -331,12 +317,17 @@ int main(int argc, char* argv[]) {
         exit(EXIT_FAILURE);
     }
 
+    std::vector<instfunc> jumptable = genjumptable(optable, funcptable);
+
+    jumptablep = jumptable.data();
+    bracetablep = bracetable->data();
+
 
     std::signal(SIGINT, sig_handler); // Handle CTRL+C
     std::signal(SIGSEGV, sig_handler);
 
 
-    interpret(optable, *bracetable);
+    interpret();
 
 
     if (flags.show_inst) 
