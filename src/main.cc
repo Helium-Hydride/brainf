@@ -255,6 +255,8 @@ void interpret() {
 
 
 
+
+
 void parse_args(s32 argc, char** argv) {
     s32 opt;
     while ((opt = getopt(argc, argv, "i:ne:p:")) != -1) {
@@ -276,8 +278,6 @@ void parse_args(s32 argc, char** argv) {
         }
     }
 }
-
-
 
 
 
