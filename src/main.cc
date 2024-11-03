@@ -29,7 +29,7 @@
 
 
 
-u8* mem;
+std::unique_ptr<u8[]> mem;
 s64 cell = 0;
 u64 inst = 0;
 
@@ -40,8 +40,8 @@ std::string_view prog_from_args;
 
 typedef void (*instfunc)();
 
-const u64* bracetablep;
-instfunc* jumptablep;
+std::vector<u64> bracetable;
+std::vector<instfunc> jumptable;
 
 
 
@@ -212,7 +212,7 @@ void readinp(u8& cell) {
 #endif
 
 // GCC will only optimize this with O2
-#define DISPATCH ++num_insts; MUSTTAIL return jumptablep[++inst]();
+#define DISPATCH ++num_insts; MUSTTAIL return jumptable[++inst]();
 
 
 void plus() {
@@ -237,13 +237,13 @@ void left() {
 
 void lbracket() {
     if (mem[cell] == 0)
-        inst = bracetablep[inst];
+        inst = bracetable[inst];
     DISPATCH;
 }
 
 void rbracket() {
     if (mem[cell] != 0)
-        inst = bracetablep[inst];
+        inst = bracetable[inst];
     DISPATCH;
 }
 
@@ -262,7 +262,7 @@ void end() {}
 
 
 void interpret() {
-    jumptablep[0]();
+    jumptable[0]();
 }
 
 
@@ -297,19 +297,14 @@ int main(int argc, char* argv[]) {
     shorten(prog);
 
 
-    auto jumptable = genjumptable(prog);
-    auto bracetable = genbracetable(prog);
+    jumptable = genjumptable(prog);
+    bracetable = genbracetable(prog);
 
-    jumptablep = jumptable.data();
-    bracetablep = bracetable.data();
-
-    std::vector<u8> mem_vec;
-    mem_vec.resize(flags.mem_size);
-    mem = mem_vec.data();
+    mem = std::make_unique<u8[]>(flags.mem_size);
 
 
     signal(SIGINT, [] (int) {
-        jumptablep[inst] = end;
+        jumptable[inst] = end;
     });
 
     signal(SIGSEGV, [] (int) {
