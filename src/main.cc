@@ -257,8 +257,11 @@ void comma() {
     DISPATCH;
 }
 
-void end() {}
 
+void end() {
+    if (flags.show_inst) 
+        std::println("\nNumber of instructions: {}", num_insts);
+}
 
 
 void interpret() {
@@ -314,8 +317,4 @@ int main(int argc, char* argv[]) {
 
 
     interpret();
-
-
-    if (flags.show_inst) 
-        std::println("\nNumber of instructions: {}", num_insts);
 }
