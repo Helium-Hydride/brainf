@@ -28,9 +28,8 @@
 #include "typedefs.h"
 
 
-constexpr s32 mem_size = 30000;
 
-u8 mem[mem_size] = {};
+u8* mem;
 s64 cell = 0;
 u64 inst = 0;
 
@@ -56,11 +55,12 @@ struct {
     bool show_inst;
     bool input_in_args;
     bool prog_in_args;
-} flags = {UNCHANGED, false, false, false};
+    u64 mem_size;
+} flags = {UNCHANGED, false, false, false, 30000};
 
 void parse_args(s32 argc, char** argv) {
     s32 opt;
-    while ((opt = getopt(argc, argv, "i:ne:p:")) != -1) {
+    while ((opt = getopt(argc, argv, "i:ne:p:m:")) != -1) {
         switch (opt) {
         case 'i': // Input in args instead of stdin
             flags.input_in_args = true;
@@ -75,6 +75,9 @@ void parse_args(s32 argc, char** argv) {
         case 'p':
             flags.prog_in_args = true;
             prog_from_args = optarg;
+            break;
+        case 'm':
+            flags.mem_size = atol(optarg);
             break;
         }
     }
@@ -299,6 +302,10 @@ int main(int argc, char* argv[]) {
 
     jumptablep = jumptable.data();
     bracetablep = bracetable.data();
+
+    std::vector<u8> mem_vec;
+    mem_vec.resize(flags.mem_size);
+    mem = mem_vec.data();
 
 
     signal(SIGINT, [] (int) {
