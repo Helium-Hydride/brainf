@@ -58,6 +58,28 @@ struct {
     bool prog_in_args;
 } flags = {UNCHANGED, false, false, false};
 
+void parse_args(s32 argc, char** argv) {
+    s32 opt;
+    while ((opt = getopt(argc, argv, "i:ne:p:")) != -1) {
+        switch (opt) {
+        case 'i': // Input in args instead of stdin
+            flags.input_in_args = true;
+            input = optarg;
+            break;
+        case 'n': // Show number of instructions
+            flags.show_inst = true;
+            break;
+        case 'e': // Behavior of input after EOF
+            flags.eofbhv = static_cast<eof_bhv>(atoi(optarg));
+            break;
+        case 'p':
+            flags.prog_in_args = true;
+            prog_from_args = optarg;
+            break;
+        }
+    }
+}
+
 
 
 
@@ -242,31 +264,6 @@ void interpret() {
 
 
 
-
-void parse_args(s32 argc, char** argv) {
-    s32 opt;
-    while ((opt = getopt(argc, argv, "i:ne:p:")) != -1) {
-        switch (opt) {
-        case 'i': // Input in args instead of stdin
-            flags.input_in_args = true;
-            input = optarg;
-            break;
-        case 'n': // Show number of instructions
-            flags.show_inst = true;
-            break;
-        case 'e': // Behavior of input after EOF
-            flags.eofbhv = static_cast<eof_bhv>(atoi(optarg));
-            break;
-        case 'p':
-            flags.prog_in_args = true;
-            prog_from_args = optarg;
-            break;
-        }
-    }
-}
-
-
-
 int main(int argc, char* argv[]) {
     parse_args(argc, argv);
 
@@ -307,7 +304,7 @@ int main(int argc, char* argv[]) {
     signal(SIGINT, [] (int) {
         jumptablep[inst] = end;
     });
-    
+
     signal(SIGSEGV, [] (int) {
         std::println(stderr, "\nSegmentation fault!");
         exit(EXIT_FAILURE);
