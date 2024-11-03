@@ -10,6 +10,7 @@
 #include <vector>
 #include <stack>
 #include <string>
+#include <algorithm>
 #include <type_traits>
 #include <numeric>
 #include <cmath>
@@ -59,81 +60,92 @@ struct {
 
 
 
-enum instruction {
-    PLUS, MINUS, RIGHT, LEFT, LBRACKET, RBRACKET, DOT, COMMA, END, NO_OP
-};
+void plus(), minus(), right(), left(), lbracket(), rbracket(), dot(), comma(), end();
 
-constexpr s32 num_ops = 9;
-
-
-instruction toinst(char c) {
+instfunc to_inst(char c) {
     switch (c) {
-    case '+': return PLUS;
-    case '-': return MINUS;
-    case '>': return RIGHT; 
-    case '<': return LEFT; 
-    case '[': return LBRACKET;
-    case ']': return RBRACKET;
-    case '.': return DOT;
-    case ',': return COMMA;
-    default:  return NO_OP;
+    case '+': return plus;
+    case '-': return minus;
+    case '>': return right; 
+    case '<': return left; 
+    case '[': return lbracket;
+    case ']': return rbracket;
+    case '.': return dot;
+    case ',': return comma;
+    default:  return nullptr;
     }
 }
 
 
-std::vector<instruction> genoptable(std::string_view prog) {
-    std::vector<instruction> table;
-
-    for (const char& c: prog) {
-        if (toinst(c) != NO_OP) {
-            table.push_back(toinst(c));
+void shorten(std::string& prog) {
+    std::erase_if(prog, [] (char c) {
+        switch (c) {
+        default: return true;
+        case '+':
+        case '-':
+        case '>': 
+        case '<':
+        case '[': 
+        case ']': 
+        case '.':
+        case ',': 
+            return false;
         }
-    }
-
-    table.push_back(END);
-    return table;
+    });
 }
 
 
-std::vector<instfunc> genjumptable(const std::vector<instruction>& optable, const std::array<instfunc, num_ops>& funcptable) {
+std::vector<instfunc> genjumptable(std::string_view prog) {
     std::vector<instfunc> table;
 
-    for (const instruction& op: optable) {
-        table.push_back(funcptable[op]);
+    for (const char& c: prog) {
+        table.push_back(to_inst(c));
     }
+
+    table.push_back(end);
 
     return table;
 }
 
 
-std::expected<std::vector<u64>, std::string> genbracetable(const std::vector<instruction>& optable) {
+std::expected<std::vector<u64>, std::string> makebracetable(std::string_view prog) {
     std::vector<u64> table;
-    table.reserve(optable.size());
+    table.resize(prog.size());
 
     std::stack<u64> lstack;
     
-    for (u64 i = 0; i < optable.size(); i++) {
-        switch (optable[i]) {
-        case LBRACKET:
+    for (u64 i = 0; i < prog.size(); i++) {
+        switch (prog[i]) {
+        case '[':
             lstack.push(i);
             break;
-        case RBRACKET:
+        case ']':
             if (lstack.empty())
                 return std::unexpected("Error: mismatched ]");
 
             table[i] = lstack.top();
             table[lstack.top()] = i;
             lstack.pop();
-        default:;
         }
     }
 
     if (!lstack.empty())
         return std::unexpected("Error: mismatched [");
-
+        
     return table;
 }
 
+
+std::vector<u64> genbracetable(std::string_view prog) {
+    auto bracetable = makebracetable(prog);
+
+    if (!bracetable) {
+        std::println(stderr, "{}", bracetable.error());
+        exit(EXIT_FAILURE);
+    }
+
+    return *bracetable;
+}
 
 
 
@@ -193,7 +205,6 @@ void sig_handler(s32 sig) {sig_handler_helper(sig);}
 #define DISPATCH ++num_insts; MUSTTAIL return jumptablep[++inst]();
 
 
-
 void plus() {
     mem[cell]++;
     DISPATCH;
@@ -238,8 +249,6 @@ void comma() {
 
 void end() {}
 
-
-std::array<instfunc, num_ops> funcptable = {plus, minus, right, left, lbracket, rbracket, dot, comma, end};
 
 
 void interpret() {
@@ -313,20 +322,14 @@ int main(int argc, char* argv[]) {
         prog = prog_from_args;
     }
 
+    shorten(prog);
 
-    auto optable = genoptable(prog);
-    auto bracetable = genbracetable(optable);
-
-    if (!bracetable) {
-        std::println(stderr, "{0}", bracetable.error());
-        exit(EXIT_FAILURE);
-    }
-
-    std::vector<instfunc> jumptable = genjumptable(optable, funcptable);
+    auto jumptable = genjumptable(prog);
+    auto bracetable = genbracetable(prog);
 
     jumptablep = jumptable.data();
-    bracetablep = bracetable->data();
-
+    bracetablep = bracetable.data();
+    
 
     std::signal(SIGINT, sig_handler); // Handle CTRL+C
     std::signal(SIGSEGV, sig_handler);
@@ -336,5 +339,5 @@ int main(int argc, char* argv[]) {
 
 
     if (flags.show_inst) 
-        std::println("\nNumber of instructions: {0}", num_insts);
+        std::println("\nNumber of instructions: {}", num_insts);
 }

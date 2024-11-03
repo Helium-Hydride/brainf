@@ -6,7 +6,7 @@ CLANGFLAGS = -std=c++23 -stdlib=libc++
 
 
 bf: src/main.cc src/typedefs.h
-	$(CXX) src/main.cc $(CFLAGS) -o bf
+	$(CXX) src/main.cc $(CFLAGS) -Og -g -o bf
 
 
 opt: src/main.cc src/typedefs.h
