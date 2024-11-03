@@ -7,6 +7,7 @@
 #include <array>
 #include <map>
 #include <unordered_map>
+#include <set>
 #include <vector>
 #include <stack>
 #include <string>
@@ -79,18 +80,7 @@ instfunc to_inst(char c) {
 
 void shorten(std::string& prog) {
     std::erase_if(prog, [] (char c) {
-        switch (c) {
-        default: return true;
-        case '+':
-        case '-':
-        case '>': 
-        case '<':
-        case '[': 
-        case ']': 
-        case '.':
-        case ',': 
-            return false;
-        }
+        return !std::string("+-><[].,").contains(c);
     });
 }
 
@@ -190,11 +180,6 @@ void readinp(u8& cell) {
 
 
 
-std::function<void(int)> sig_handler_helper;
-void sig_handler(s32 sig) {sig_handler_helper(sig);}
-
-
-
 #ifdef __clang__
 #define MUSTTAIL __attribute__((musttail))
 #else
@@ -252,21 +237,8 @@ void end() {}
 
 
 void interpret() {
-    sig_handler_helper = [&] (s32 sig) {
-        if (sig == SIGINT) {
-            jumptablep[inst] = end;
-        } 
-        
-        if (sig == SIGSEGV) {
-            std::println(stderr, "\nSegmentation fault!");
-            exit(EXIT_FAILURE);
-        }
-    };
-
-
     jumptablep[0]();
 }
-
 
 
 
@@ -324,15 +296,22 @@ int main(int argc, char* argv[]) {
 
     shorten(prog);
 
+
     auto jumptable = genjumptable(prog);
     auto bracetable = genbracetable(prog);
 
     jumptablep = jumptable.data();
     bracetablep = bracetable.data();
-    
 
-    std::signal(SIGINT, sig_handler); // Handle CTRL+C
-    std::signal(SIGSEGV, sig_handler);
+
+    signal(SIGINT, [] (int) {
+        jumptablep[inst] = end;
+    });
+    
+    signal(SIGSEGV, [] (int) {
+        std::println(stderr, "\nSegmentation fault!");
+        exit(EXIT_FAILURE);
+    });
 
 
     interpret();
