@@ -159,21 +159,19 @@ std::string readfile(const std::string& name) {
 }
 
 
-std::string getprog(s32 argc, char** argv) {
+std::expected<std::string, std::string> getprog(s32 argc, char** argv) {
     std::string progname;
     std::string prog;
     
     if (!flags.prog_in_args) {
         if (argc < 2 || optind == argc) {
-            std::println(stderr, "Error: program not given");
-            exit(EXIT_FAILURE);
+            return std::unexpected("Error: program not given");
         }
 
         progname = argv[optind];
 
         if (!std::filesystem::exists(progname)) {
-            std::println(stderr, "Error: program not found");
-            exit(EXIT_FAILURE);
+            return std::unexpected("Error: program not found");
         }
 
         prog = readfile(progname);
@@ -288,7 +286,16 @@ int main(int argc, char* argv[]) {
     setbuf(stdout, nullptr); // Disable buffering
 
 
-    std::string prog = getprog(argc, argv);
+    auto prog_res = getprog(argc, argv);
+    std::string prog;
+
+    if (prog_res) {
+        prog = *prog_res;
+    } else {
+        std::println(stderr, "{}", prog_res.error());
+        exit(EXIT_FAILURE);
+    }
+    
 
     shorten(prog);
 
