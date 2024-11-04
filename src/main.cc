@@ -159,6 +159,32 @@ std::string readfile(const std::string& name) {
 }
 
 
+std::string getprog(s32 argc, char** argv) {
+    std::string progname;
+    std::string prog;
+    
+    if (!flags.prog_in_args) {
+        if (argc < 2 || optind == argc) {
+            std::println(stderr, "Error: program not given");
+            exit(EXIT_FAILURE);
+        }
+
+        progname = argv[optind];
+
+        if (!std::filesystem::exists(progname)) {
+            std::println(stderr, "Error: program not found");
+            exit(EXIT_FAILURE);
+        }
+
+        prog = readfile(progname);
+    } else {
+        prog = prog_from_args;
+    }
+
+    return prog;
+}
+
+
 
 void set_cell_on_eof(u8& cell) {
     switch (flags.eofbhv) {
@@ -262,26 +288,7 @@ int main(int argc, char* argv[]) {
     setbuf(stdout, nullptr); // Disable buffering
 
 
-    std::string progname;
-    std::string prog;
-    
-    if (!flags.prog_in_args) {
-        if (argc < 2 || optind == argc) {
-            std::println(stderr, "Error: program not given");
-            exit(EXIT_FAILURE);
-        }
-
-        progname = argv[optind];
-
-        if (!std::filesystem::exists(progname)) {
-            std::println(stderr, "Error: program not found");
-            exit(EXIT_FAILURE);
-        }
-
-        prog = readfile(progname);
-    } else {
-        prog = prog_from_args;
-    }
+    std::string prog = getprog(argc, argv);
 
     shorten(prog);
 
