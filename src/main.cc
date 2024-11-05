@@ -70,6 +70,13 @@ void parse_args(s32 argc, char** argv) {
 }
 
 
+[[noreturn]]
+void error(const std::string& str) {
+    std::println(stderr, "{}", str);
+    exit(EXIT_FAILURE);
+}
+
+
 
 
 void plus(), minus(), right(), left(), lbracket(), rbracket(), dot(), comma(), end();
@@ -292,8 +299,7 @@ int main(int argc, char* argv[]) {
     if (prog_res) {
         prog = *prog_res;
     } else {
-        std::println(stderr, "{}", prog_res.error());
-        exit(EXIT_FAILURE);
+        error(prog_res.error());
     }
     
 
@@ -311,8 +317,7 @@ int main(int argc, char* argv[]) {
     });
 
     signal(SIGSEGV, [] (int) {
-        std::println(stderr, "\nSegmentation fault!");
-        exit(EXIT_FAILURE);
+        error("\nSegmentation fault!");
     });
 
 
