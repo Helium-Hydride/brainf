@@ -12,6 +12,7 @@
 
 
 #include "typedefs.h"
+#include "helpers.h"
 
 
 
@@ -69,12 +70,6 @@ void parse_args(s32 argc, char** argv) {
     }
 }
 
-
-[[noreturn]]
-void error(const std::string& str) {
-    std::println(stderr, "{}", str);
-    exit(EXIT_FAILURE);
-}
 
 
 
@@ -145,28 +140,14 @@ std::expected<std::vector<u64>, std::string> makebracetable(std::string_view pro
 
 
 std::vector<u64> genbracetable(std::string_view prog) {
-    auto bracetable = makebracetable(prog);
-
-    if (!bracetable) {
-        std::println(stderr, "{}", bracetable.error());
-        exit(EXIT_FAILURE);
-    }
-
-    return *bracetable;
+    return value_or_else(makebracetable(prog), [] (auto err) -> std::vector<u64> {
+        error(err);
+    });
 }
 
 
 
-std::string readfile(const std::string& name) {
-    std::ifstream f {name};
-    std::ostringstream buf;
-    buf << f.rdbuf();
-
-    return buf.str();
-}
-
-
-std::expected<std::string, std::string> getprog(s32 argc, char** argv) {
+std::expected<std::string, std::string> get_prog(s32 argc, char** argv) {
     std::string progname;
     std::string prog;
     
@@ -293,15 +274,10 @@ int main(int argc, char* argv[]) {
     setbuf(stdout, nullptr); // Disable buffering
 
 
-    auto prog_res = getprog(argc, argv);
-    std::string prog;
+    std::string prog = value_or_else(get_prog(argc, argv), [] (auto err) -> std::string {
+        error(err);
+    });
 
-    if (prog_res) {
-        prog = *prog_res;
-    } else {
-        error(prog_res.error());
-    }
-    
 
     shorten(prog);
 
