@@ -7,7 +7,8 @@
 #include <source_location>
 #include <utility>
 #include <concepts>
-#include <iosfwd>
+#include <fstream>
+#include <ostream>
 
 
 #define FWD(x) std::forward<decltype(x)>(x)
