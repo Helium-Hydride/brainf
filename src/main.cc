@@ -8,6 +8,7 @@
 #include <expected>
 #include <csignal>
 #include <filesystem>
+#include <chrono>
 #include <unistd.h>
 
 
@@ -32,6 +33,12 @@ std::vector<instfunc> jumptable;
 
 
 
+struct {
+    std::chrono::steady_clock::time_point begin;
+    std::chrono::steady_clock::time_point end;
+} timer;
+
+
 
 enum eof_bhv {
     UNCHANGED, ZERO, MINUS_ONE
@@ -42,12 +49,13 @@ struct {
     bool show_inst;
     bool input_in_args;
     bool prog_in_args;
+    bool timer;
     u64 mem_size;
-} flags = {UNCHANGED, false, false, false, 30000};
+} flags = {UNCHANGED, false, false, false, false, 30000};
 
 void parse_args(s32 argc, char** argv) {
     s32 opt;
-    while ((opt = getopt(argc, argv, "i:ne:p:m:")) != -1) {
+    while ((opt = getopt(argc, argv, "i:ne:p:m:t")) != -1) {
         switch (opt) {
         case 'i': // Input in args instead of stdin
             flags.input_in_args = true;
@@ -65,6 +73,9 @@ void parse_args(s32 argc, char** argv) {
             break;
         case 'm':
             flags.mem_size = atol(optarg);
+            break;
+        case 't':
+            flags.timer = true;
             break;
         }
     }
@@ -258,7 +269,19 @@ void comma() {
 
 void end() {
     if (flags.show_inst) 
-        std::println("\nNumber of instructions: {}", num_insts);
+        std::print("\nNumber of instructions: {}", num_insts);
+    
+    if (flags.timer) {
+        timer.end = std::chrono::steady_clock::now();
+        auto nanosecs = std::chrono::duration_cast<std::chrono::nanoseconds> (timer.end - timer.begin).count();
+        auto secs = nanosecs / 1000000000.0;
+
+        std::print("\nTime: {} seconds", secs);
+
+        std::print("\nInstructions per second: {}", num_insts / secs);
+    }
+
+    std::println();
 }
 
 
@@ -296,6 +319,11 @@ int main(int argc, char* argv[]) {
         error("\nSegmentation fault!");
     });
 
+
+
+    if (flags.timer) {
+        timer.begin = std::chrono::steady_clock::now();
+    }
 
     interpret();
 }
