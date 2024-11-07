@@ -1,4 +1,4 @@
-A brainfuck interpreter I made. Compile using `make opt`.
+A brainfuck interpreter I made. Compile using `make`.
 
 Executes about 600M instructions per second, depending on the program.
 
