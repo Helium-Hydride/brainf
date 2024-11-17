@@ -152,7 +152,7 @@ std::expected<std::vector<u64>, std::string> makebracetable(std::string_view pro
 
 std::vector<u64> genbracetable(std::string_view prog) {
     return value_or_else(makebracetable(prog), [] (auto err) -> std::vector<u64> {
-        error(err);
+        error("{}", err);
     });
 }
 
@@ -298,7 +298,7 @@ int main(int argc, char* argv[]) {
 
 
     std::string prog = value_or_else(get_prog(argc, argv), [] (auto err) -> std::string {
-        error(err);
+        error("{}", err);
     });
 
 
