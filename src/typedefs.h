@@ -2,24 +2,27 @@
 #define TYPEDEFS_H
 
 
-#ifdef __cplusplus
 #include <cstdint>
-#define _STD_PREFIX std::
-#else
-#include <stdint.h>
-#define _STD_PREFIX
-#endif
+#include <stdfloat>
 
-typedef _STD_PREFIX int8_t           s8;
-typedef _STD_PREFIX uint8_t          u8;
-typedef _STD_PREFIX int16_t          s16;
-typedef _STD_PREFIX uint16_t         u16;
-typedef _STD_PREFIX int32_t          s32;
-typedef _STD_PREFIX uint32_t         u32;
-typedef _STD_PREFIX int64_t          s64;
-typedef _STD_PREFIX uint64_t         u64;
 
-typedef float                        f32;
-typedef double                       f64;
+typedef std::int8_t         s8;
+typedef std::uint8_t        u8;
+typedef std::int16_t       s16;
+typedef std::uint16_t      u16;
+typedef std::int32_t       s32;
+typedef std::uint32_t      u32;
+typedef std::int64_t       s64;
+typedef std::uint64_t      u64;
+typedef __int128          s128;
+typedef unsigned __int128 u128;
+
+
+typedef std::float16_t     f16;
+typedef std::float32_t     f32;
+typedef std::float64_t     f64;
+typedef long double        f80;
+typedef std::float128_t   f128;
+
 
 #endif
